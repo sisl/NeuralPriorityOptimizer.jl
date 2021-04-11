@@ -11,8 +11,11 @@ export general_priority_optimization,
        PriorityOptimizerParameters,
        project_onto_range,
        optimize_linear,
+       contained_within_polytope,
+       reaches_polytope,
        fgsm,
        pgd,
        repeated_pgd,
-       hookes_jeeves
+       hookes_jeeves,
+       get_acas_sets
 end # module
