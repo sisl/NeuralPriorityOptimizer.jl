@@ -47,10 +47,14 @@ println("Steps: ", steps)
 # Now visualize the projected versus the original image. First plot the generated image 
 gen_from_x = (NeuralVerification.compute_output(network, x_star) .+ 1) ./2.0
 gen_shaped = reshape(gen_from_x, 16, 8)'
-plot(Gray.(gen_shaped), axis = [], title=string("Generated Image ", image_index))
 
 # Now plot the original image 
 true_shaped = reshape(images[:, image_index], 16, 8)'
-plot(Gray.(true_shaped), axis = [], title=string("True Image ", image_index))
 
+# In order not to include Plots in this package, the actually plotting is omitted. If you did want to do this
+# you could add the packages Plots and Colors and then use the following code.
+#plot(Gray.(gen_shaped), axis = [], title=string("Generated Image ", image_index))
+#savefig(string("@__DIR__", "/temp_generated.png")
+# plot(Gray.(true_shaped), axis = [], title=string("True Image ", image_index))
+#savefig(string("@__DIR__", "/temp_real.png")
 
