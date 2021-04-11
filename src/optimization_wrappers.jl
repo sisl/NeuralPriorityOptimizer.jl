@@ -1,7 +1,14 @@
-# Solve the distance for an arbitrary p-norm 
-function dist_to_zonotope_p(reach, point, p)
-    G = reach.generators
-    c = reach.center
+# Find the distance for an arbitrary p-norm between a point and a zonotope
+"""
+    dist_to_zonotope_p(zonotope::Zonotope, point, p)
+
+    A helper function which computes the distance under norm p between a 
+        zonotope and a point. This is defined as 
+    inf_y ||y - point||_p s.t. y in zonotope
+"""
+function dist_to_zonotope_p(zonotope::Zonotope, point, p)
+    G = zonotope.generators
+    c = zonotope.center
     n, m = size(G)
     x = Variable(m)
     obj = norm(G * x + c - point, p)
@@ -11,18 +18,29 @@ function dist_to_zonotope_p(reach, point, p)
     return prob.optval
 end
 
-# Check whether a point is included in the output of a network
-# Right now this finds the negative distance of the point to the network:
-#  inf_x,y ||y_0 - y||_p s.t. y = network(x), lb <= x <= ub. It will actually solve 
-# max_x,y -||y_0 - y||_p s.t. y = network(x), lb <= x <= ub, so the return value is negative of what you ight expect   
-function inclusion_wrapper(network, lbs, ubs, y₀, p; n_steps = 1000, solver=Ai2z(), early_stop=true, stop_freq=200, stop_gap=1e-4, initial_splits=0)
-    evaluate_objective = x -> -norm(y₀ - NeuralVerification.compute_output(network, x), p)
-    approximate_optimize_cell = cell -> -dist_to_zonotope_p(forward_network(solver, network, cell), y₀; p=p)
-    return general_priority_optimization(lbs, ubs, approximate_optimize_cell, evaluate_objective;  n_steps = n_steps, solver=solver, early_stop=early_stop, stop_freq=stop_freq, stop_gap=stop_gap, initial_splits=initial_splits)
+"""
+    project_onto_range(network, input_set, y₀, p, params)
+
+Project a point (with the projection defined by the p norm) y₀ onto the range of a network given an input_set. We frame this as 
+solving the optimization problem
+inf_x,y ||y_0 - y||_p s.t. y = network(x), x in input_set. We return the optimal 
+x, lower bound on the objective value, upper bound on the objective value, and the number of steps 
+that the solver took. 
+"""
+function project_onto_range(network, input_set, y₀, p, params; solver=Ai2z())
+    approximate_optimize_cell = cell -> dist_to_zonotope_p(forward_network(solver, network, cell), y₀; p=p)
+    achievable_value = cell -> norm(y₀ - NeuralVerification.compute_output(network, cell.center), p)
+    return general_priority_optimization(input_set, approximate_optimize_cell, achievable_value, params, false)
 end
 
-function linear_opt_wrapper(network, lbs, ubs, coeffs; n_steps = 1000, solver=Ai2z(), early_stop=true, stop_freq=200, stop_gap=1e-4, initial_splits=0)
-    evaluate_objective = x -> compute_objective(network, x, coeffs)
+"""
+    optimize_linear(network, input_set, coeffs, params; maximize=true)
+
+Optimize a linear function on the output of a network. This returns the optimal input, lower bound on the objective value,
+    upper bound on the objective value, and the number of steps that the solver took.  
+"""
+function optimize_linear(network, input_set, coeffs, params; maximize=true, solver=Ai2z())
     approximate_optimize_cell = cell -> ρ(coeffs, forward_network(solver, network, cell))
-    return general_priority_optimization(lbs, ubs, approximate_optimize_cell, evaluate_objective;  n_steps = n_steps, solver=solver, early_stop=early_stop, stop_freq=stop_freq, stop_gap=stop_gap, initial_splits=initial_splits)
+    achievable_value = cell -> compute_linear_objective(network, cell.center, coeffs)
+    return general_priority_optimization(input_set, approximate_optimize_cell, achievable_value, params, maximize)
 end

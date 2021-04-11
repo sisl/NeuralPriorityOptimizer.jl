@@ -1,16 +1,16 @@
 module NeuralPriorityOptimizer
-using NeuralVerification, LazySets
+using NeuralVerification, LazySets, Parameters, DataStructures, LinearAlgebra
 
 include("utils.jl")
 include("optimization_core.jl")
 include("optimization_wrappers.jl")
 include("approximate_methods.jl")
 export general_priority_optimization,
-       inclusion_wrapper,
-       linear_opt_wrapper,
+       PriorityOptimizerParameters,
+       project_onto_range,
+       optimize_linear,
        fgsm,
        pgd,
        repeated_pgd,
        hookes_jeeves
-
 end # module
