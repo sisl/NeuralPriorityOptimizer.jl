@@ -55,10 +55,9 @@ end
     inf_x ||x - point||_p s.t. x in zonotope
 """
 function dist_zonotope_point(zonotope::Zonotope, point, p)
-    G = zonotope.generators
-    c = zonotope.center
+    G, c = zonotope.generators, zonotope.center
     n, m = size(G)
-    x = Variable(m)
+    x = Variable(m) # points in the hypercube defining the zonotope
     obj = norm(G * x + c - point, p)
     prob = minimize(obj, [x <= 1.0, x >= -1.0])
     solve!(prob, Mosek.Optimizer(LOG=0))
@@ -74,10 +73,9 @@ end
     inf_x,y ||x - y||_p s.t. x in zonotope and y in polytope 
 """
 function dist_zonotope_polytope(zonotope::Zonotope, A, b, p)
-    G = zonotope.generators
-    c = zonotope.center
+    G, c = zonotope.generators, zonotope.center
     n, m = size(G)
-    x = Variable(m) # points in the zonotope
+    x = Variable(m) # points in the hypercube defining the zonotope
     y = Variable(size(A, 2)) # points in the polytope 
     obj = norm(G * x + c - y, p)
     prob = minimize(obj, [x <= 1.0, x >= -1.0, A*y <= b])
@@ -85,6 +83,77 @@ function dist_zonotope_polytope(zonotope::Zonotope, A, b, p)
     @assert prob.status == OPTIMAL "Solve must result in optimal status"
     return prob.optval <= NeuralVerification.TOL[] ? 0.0 : prob.optval
 end
+
+"""
+    dist_zonotope_polytope_linf(zonotope::Zonotope, A, b)
+
+Find the minimum distance between a zonotope and a polytope measured by the linf norm.
+This is formulated as an LP
+
+"""
+function dist_zonotope_polytope_linf(zonotope::Zonotope, A, b; solver=Gurobi.Optimizer)
+    G, c = zonotope.generators, zonotope.center
+    n, m = size(G)
+    model = Model(with_optimizer(solver, gurobi_env, OutputFlag=0))
+    
+    # Introduce x in the basis of the zonotope, y in the polytope 
+    x = @variable(model, [1:m])
+    z = G * x + c
+    @constraint(model, x .>= -1.0)
+    @constraint(model, x .<= 1.0)
+    
+    y = @variable(model, [1:n])
+    @constraint(model, A*y .<= b)
+
+    # Now, introduce a variable for our l-inf norm
+    t = @variable(model)
+    @constraint(model, t .>= y - z)
+    @constraint(model, t .>= z - y)
+    @objective(model, Min, t)
+
+    optimize!(model)
+    @assert termination_status(model) == OPTIMAL "Solve must result in optimal status"
+    return value(t) # should this add a TOL[] be here?
+end
+
+"""
+    dist_polytope_zonotope_l1(zonotope::Zonotope, A, b; solver=Gurobi.Optimizer)
+
+Find the minimum distance between a zonotope and a polytope measured by the l1 norm.
+This is formulated as an LP
+"""
+function dist_zonotope_polytope_l1(zonotope::Zonotope, A, b; solver=Gurobi.Optimizer)
+    G, c = zonotope.generators, zonotope.center
+    n, m = size(G)
+    model = Model(with_optimizer(solver, gurobi_env, OutputFlag=0))
+    
+    # Introduce x in the basis of the zonotope, y in the polytope 
+    x = @variable(model, [1:m])
+    z = G * x + c
+    @constraint(model, x .>= -1.0)
+    @constraint(model, x .<= 1.0)
+    
+    y = @variable(model, [1:n])
+    @constraint(model, A*y .<= b)
+
+    # Now, introduce a variable for our l-inf norm
+    t = @variable(model, [1:n])
+    @constraint(model, t .>= y - z)
+    @constraint(model, t .>= z - y)
+    @objective(model, Min, sum(t))
+
+    optimize!(model)
+    @assert termination_status(model) == OPTIMAL "Solve must result in optimal status"
+    return sum(value.(t)) # should this add a TOL[] be here?
+end
+
+
+function max_dist(h1::Hyperrectangle, h2::Hyperrectangle, p)
+end
+
+function max_dist_l1(h1::Hyperrectangle, h2::Hyperrectangle)
+end
+  
 
 """
     dist_polytope_point(A, b, point, p)
@@ -101,6 +170,49 @@ function dist_polytope_point(A, b, point, p)
     @assert prob.status == OPTIMAL "Solve must result in optimal status"
     return prob.optval
 end
+
+"""
+    dist_polytope_point(A, b, point, p)
+
+    A helper function which finds the distance for the l-inf norm between a 
+        polytope and a point. It formulates this as an LP. This is defined as 
+    inf_x ||x - point||_inf s.t. x in polytope
+"""
+function dist_polytope_point_linf(A, b, point; solver=Gurobi.Optimizer)
+    model = Model(with_optimizer(solver, gurobi_env, OutputFlag=0))
+    x = @variable(model, [1:size(A, 2)])
+    @constraint(model, A * x .<= b)
+
+    t = @variable(model)
+    @constraint(model, t .>= x - point)
+    @constraint(model, t .>= point - x)
+    @objective(model, Min, t)
+    optimize!(model)
+    @assert termination_status(model) == OPTIMAL "Solve must result in optimal status"
+    return value(t) # should this add a TOL[] be here?
+end
+
+"""
+dist_polytope_point(A, b, point, p)
+
+A helper function which finds the distance for the l-1 norm between a 
+    polytope and a point. It formulates this as an LP. This is defined as 
+inf_x ||x - point||_1 s.t. x in polytope
+"""
+function dist_polytope_point_l1(A, b, point; solver=Gurobi.Optimizer)
+    model = Model(with_optimizer(solver, gurobi_env, OutputFlag=0))
+    x = @variable(model, [1:size(A, 2)])
+    @constraint(model, A * x .<= b)
+
+    t = @variable(model, [1:size(A, 2)])
+    @constraint(model, t .>= x - point)
+    @constraint(model, t .>= point - x)
+    @objective(model, Min, sum(t))
+    optimize!(model)
+    @assert termination_status(model) == OPTIMAL "Solve must result in optimal status"
+    return sum(value.(t)) # should this add a TOL[] be here?
+end
+
 
 """
     max_polytope_violation(zonotope::Zonotope, polytope)
