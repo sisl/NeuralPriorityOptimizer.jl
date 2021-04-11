@@ -1,0 +1,4 @@
+name = "NeuralPriorityOptimizer"
+uuid = "7e1232c4-5598-4acc-a396-12489b5a6036"
+authors = ["castrong <strongcreativesystems@gmail.com>"]
+version = "0.1.0"
