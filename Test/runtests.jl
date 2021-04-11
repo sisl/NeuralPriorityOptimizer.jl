@@ -1,5 +1,4 @@
-using NeuralPriorityOptimizer, LazySets, Test
+using NeuralPriorityOptimizer, NeuralVerification, LazySets, HDF5, Test
 
-@testset "temp tests" begin 
-    @test 1 == 1
-end 
+include("linear_tests.jl")
+include("projection_tests.jl")

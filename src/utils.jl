@@ -46,3 +46,22 @@ function split_multiple_times(cell::Hyperrectangle, n)
     end
     return q
 end
+
+"""
+    dist_to_zonotope_p(zonotope::Zonotope, point, p)
+
+    A helper function which finds the distance for an arbitrary p-norm norm between a 
+        zonotope and a point. This is defined as 
+    inf_y ||y - point||_p s.t. y in zonotope
+"""
+function dist_to_zonotope_p(zonotope::Zonotope, point, p)
+    G = zonotope.generators
+    c = zonotope.center
+    n, m = size(G)
+    x = Variable(m)
+    obj = norm(G * x + c - point, p)
+    prob = minimize(obj, [x <= 1.0, x >= -1.0])
+    solve!(prob, Mosek.Optimizer(LOG=0))
+    @assert prob.status == OPTIMAL "Solve must result in optimal status"
+    return prob.optval
+end

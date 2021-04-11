@@ -1,23 +1,3 @@
-# Find the distance for an arbitrary p-norm between a point and a zonotope
-"""
-    dist_to_zonotope_p(zonotope::Zonotope, point, p)
-
-    A helper function which computes the distance under norm p between a 
-        zonotope and a point. This is defined as 
-    inf_y ||y - point||_p s.t. y in zonotope
-"""
-function dist_to_zonotope_p(zonotope::Zonotope, point, p)
-    G = zonotope.generators
-    c = zonotope.center
-    n, m = size(G)
-    x = Variable(m)
-    obj = norm(G * x + c - point, p)
-    prob = minimize(obj, [x <= 1.0, x >= -1.0])
-    solve!(prob, Mosek.Optimizer(LOG=0))
-    @assert prob.status == OPTIMAL "Solve must result in optimal status"
-    return prob.optval
-end
-
 """
     project_onto_range(network, input_set, y₀, p, params)
 
@@ -28,7 +8,7 @@ x, lower bound on the objective value, upper bound on the objective value, and t
 that the solver took. 
 """
 function project_onto_range(network, input_set, y₀, p, params; solver=Ai2z())
-    approximate_optimize_cell = cell -> dist_to_zonotope_p(forward_network(solver, network, cell), y₀; p=p)
+    approximate_optimize_cell = cell -> dist_to_zonotope_p(forward_network(solver, network, cell), y₀, p)
     achievable_value = cell -> norm(y₀ - NeuralVerification.compute_output(network, cell.center), p)
     return general_priority_optimization(input_set, approximate_optimize_cell, achievable_value, params, false)
 end
