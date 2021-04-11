@@ -2,3 +2,7 @@ name = "NeuralPriorityOptimizer"
 uuid = "7e1232c4-5598-4acc-a396-12489b5a6036"
 authors = ["castrong <strongcreativesystems@gmail.com>"]
 version = "0.1.0"
+
+[deps]
+LazySets = "b4f0291d-fe17-52bc-9479-3d1a343d9043"
+NeuralVerification = "146f25fa-00e7-11e9-3ae5-fdbac6e12fa7"
