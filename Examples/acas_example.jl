@@ -102,10 +102,10 @@ end
 ###
 # Setup your parameters and then run the tests
 ###
-filename=string(@__DIR__, "/../results/CAS/acas_p=2_convexopt_max=20000")
+filename=string(@__DIR__, "/../results/CAS/acas_p=Inf_convexopt_max=20000")
 max_steps = 20000
 properties_to_test = 4
-p = 2
+p = Inf
 params = PriorityOptimizerParameters(max_steps=max_steps, stop_frequency=40)
 
 full_time = @elapsed begin

@@ -29,7 +29,7 @@ If we ever get an upper bound on our objective that's lower than the upper_bound
 
 This function returns the best input found, a lower bound on the optimal value, an upper bound on the optimal value, and the number of steps taken.
 """
-function general_priority_optimization(start_cell::Hyperrectangle, overestimate_cell, achievable_value, params::PriorityOptimizerParameters, upper_bound_threshold = -Inf)
+function general_priority_optimization(start_cell::Hyperrectangle, overestimate_cell, achievable_value, params::PriorityOptimizerParameters, lower_bound_threshold, upper_bound_threshold)
     initial_cells = split_multiple_times(start_cell, params.initial_splits)
     println("Done with initial splits")
     # Create your queue, then add your original new_cells 
@@ -62,8 +62,11 @@ function general_priority_optimization(start_cell::Hyperrectangle, overestimate_
                     println("lower bound: ", lower_bound)
                     println("Interval: ", [best_lower_bound, value])
                     println("max radius: ", max(radius(cell)))
+                    
+                    println("Cell low: ", low(cell))
+                    println("Cell high: ", high(cell))
                 end
-                if (value .- lower_bound) <= params.stop_gap
+                if (value .- lower_bound) <= params.stop_gap || lower_bound > lower_bound_threshold
                     return best_x, best_lower_bound, value, i
                 end
             end
@@ -109,22 +112,26 @@ If maximize is true, then relaxed_optimize_cell must map a cell to an overestima
 If maximize is false (so we are minimizing), then relaxed_optimize_cell must map a cell to an underestimate of the objective value in that cell. 
 In both cases, evaluate_objective must map from a cell to an achievable objective value within that cell. 
 
-If maximize is true, then bound_threshold corresponds to an upper bound threshold which if we ever get an upper bound below 
+If maximize is true, then bound_threshold_realizable corresponds to a lower bound threshold which if we ever get a concrete value above that we return. 
+
+If maximize is false, then -bound_threshold_realizable corresponds to a lower bound threshold which if we ever get a concrete value above that we return.
+
+If maximize is true, then bound_threshold_approximate corresponds to an upper bound threshold which if we ever get an upper bound for the maximization problem below 
 some amount then we should return 
-If maximize is false, then bound_threshold corresponds to a lower bound threshold which if we ever get a lower bound above that 
-then we should return. This can be used in a projection problem to stop once we're sure we can't have a distance of 0. 
+If maximize is false, then -bound_threshold_approximate corresponds to an upper bound threshold which if we ever get an upper bound for the maximization problem above that 
+then we should return. This can be used in a projection problem to stop once we're sure we have a distance > 0. Since in this case we are solving a minimization problem, we will have 
+converted it to a maximization problem by multiplying the objective by negative one, so having a threshold on the upper bound in this converted problem 
+corresponds to having a threshold on the lower bound of the minimization problem where if we ever get above that we return. 
 
 This function returns the best input found, a lower bound on the optimal value, an upper bound on the optimal value, and the number of steps taken.
 """
-function general_priority_optimization(start_cell::Hyperrectangle, relaxed_optimize_cell, evaluate_objective, params::PriorityOptimizerParameters, maximize, bound_threshold)
-    println("maximizing: ", maximize)
-    println("bound threshold: ", bound_threshold)
+function general_priority_optimization(start_cell::Hyperrectangle, relaxed_optimize_cell, evaluate_objective, params::PriorityOptimizerParameters, maximize; bound_threshold_realizable=Inf, bound_threshold_approximate=-Inf)
     if maximize
-        return general_priority_optimization(start_cell, relaxed_optimize_cell, evaluate_objective, params, bound_threshold)
+        return general_priority_optimization(start_cell, relaxed_optimize_cell, evaluate_objective, params, bound_threshold_realizable, bound_threshold_approximate)
     else 
         overestimate_cell = cell -> -relaxed_optimize_cell(cell)
         neg_evaluate_objective = cell -> -evaluate_objective(cell)
-        x, lower, upper, steps = general_priority_optimization(start_cell, overestimate_cell, neg_evaluate_objective, params, -bound_threshold)
+        x, lower, upper, steps = general_priority_optimization(start_cell, overestimate_cell, neg_evaluate_objective, params, -bound_threshold_realizable, -bound_threshold_approximate)
         return x, -upper, -lower, steps
     end
 end

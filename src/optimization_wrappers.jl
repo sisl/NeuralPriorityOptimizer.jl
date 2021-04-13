@@ -10,7 +10,7 @@ that the solver took.
 function project_onto_range(network, input_set, y₀, p, params; solver=Ai2z())
     approximate_optimize_cell = cell -> dist_zonotope_point(forward_network(solver, network, cell), y₀, p)
     achievable_value = cell -> norm(y₀ - NeuralVerification.compute_output(network, cell.center), p)
-    return general_priority_optimization(input_set, approximate_optimize_cell, achievable_value, params, false)
+    return general_priority_optimization(input_set, approximate_optimize_cell, achievable_value, params, false) # TODO: should there be early stopping here?
 end
 
 """
@@ -36,7 +36,20 @@ function reaches_polytope(network, input_set, polytope, params; solver=Ai2z(), p
     A, b = tosimplehrep(polytope)
     underestimate_cell = cell -> dist_zonotope_polytope(forward_network(solver, network, cell), A, b, p)
     achievable_value = cell -> dist_polytope_point(A, b, NeuralVerification.compute_output(network, cell.center), p)
-    return general_priority_optimization(input_set, underestimate_cell, achievable_value, params, false, 0.0) # 0.0 is the upper_bound_threshold
+    return general_priority_optimization(input_set, underestimate_cell, achievable_value, params, false; bound_threshold_approximate=0.0) # if we ever show that we must have a distance > 0, then we know we can't reach the polytope 
+end
+
+"""
+    project_onto_polytope(network, input_set, polytope, params; solver=Ai2z(), p=2)
+
+Projects the range of a network onto a polytope. This is the same as reaches_polytope except it won't 
+stop early if it proves that the distance of the projection is > 0. 
+"""
+function project_onto_polytope(network, input_set, polytope, params; solver=Ai2z(), p=2)
+    A, b = tosimplehrep(polytope)
+    underestimate_cell = cell -> dist_zonotope_polytope(forward_network(solver, network, cell), A, b, p)
+    achievable_value = cell -> dist_polytope_point(A, b, NeuralVerification.compute_output(network, cell.center), p)
+    return general_priority_optimization(input_set, underestimate_cell, achievable_value, params, false) # if we ever show that we must have a distance > 0, then we know we can't reach the polytope 
 end
 
 """
@@ -48,7 +61,7 @@ function contained_within_polytope(network, input_set, polytope, params; solver=
     A, b = tosimplehrep(polytope)
     overestimate_cell = cell -> max_polytope_violation(forward_network(solver, network, cell), A, b)
     achievable_value = cell -> max_polytope_violation(NeuralVerification.compute_output(network, cell.center), A, b)
-    return general_priority_optimization(input_set, overestimate_cell, achievable_value, params, true, -Inf)
+    return general_priority_optimization(input_set, overestimate_cell, achievable_value, params, true; bound_threshold_realizable=0.0) # if we ever find a concrete value > 0 then return
 end
 
 """
@@ -69,5 +82,5 @@ function max_network_difference(network1, network2, input_set, params; solver=Ai
     # The distance between the output from each network at the center of the cell 
     achievable_value = cell -> norm(NeuralVerification.compute_output(network1, cell.center) - NeuralVerification.compute_output(network2, cell.center))
 
-    return general_priority_optimization(input_set, overestimate_cell, achievable_value, params, true, -Inf)
+    return general_priority_optimization(input_set, overestimate_cell, achievable_value, params, true)
 end
