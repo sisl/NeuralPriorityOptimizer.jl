@@ -80,7 +80,7 @@ function max_network_difference(network1, network2, input_set, params; solver=Ai
     end
 
     # The distance between the output from each network at the center of the cell 
-    achievable_value = cell -> norm(NeuralVerification.compute_output(network1, cell.center) - NeuralVerification.compute_output(network2, cell.center))
+    achievable_value = cell -> norm(NeuralVerification.compute_output(network1, cell.center) - NeuralVerification.compute_output(network2, cell.center), p)
 
     return general_priority_optimization(input_set, overestimate_cell, achievable_value, params, true)
 end
