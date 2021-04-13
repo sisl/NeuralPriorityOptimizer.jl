@@ -13,6 +13,7 @@ Define a struct which holds all the parameters for the priority optimizer
     stop_frequency::Int = 200
     stop_gap::Float64 = 1e-4
     initial_splits::Int = 0
+    verbosity::Int = 0
 end
 
 """
@@ -56,11 +57,13 @@ function general_priority_optimization(start_cell::Hyperrectangle, overestimate_
                     best_lower_bound = lower_bound
                     best_x = cell.center
                 end
-                # println("i: ", i)
-                # println("lower bound: ", lower_bound)
-                # println("best lower bound: ", best_lower_bound)
-                # println("value: ", value)
-                # println("max radius: ", max(radius(cell)))
+                if params.verbosity >= 1
+                    println("i: ", i)
+                    println("lower bound: ", lower_bound)
+                    println("best lower bound: ", best_lower_bound)
+                    println("value: ", value)
+                    println("max radius: ", max(radius(cell)))
+                end
                 if (value .- lower_bound) <= params.stop_gap
                     return best_x, best_lower_bound, value, i
                 end

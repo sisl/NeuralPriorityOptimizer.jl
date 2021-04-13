@@ -147,11 +147,61 @@ function dist_zonotope_polytope_l1(zonotope::Zonotope, A, b; solver=Gurobi.Optim
     return sum(value.(t)) # should this add a TOL[] be here?
 end
 
+"""
+    sign_custom(x)
 
-function max_dist(h1::Hyperrectangle, h2::Hyperrectangle, p)
+    Our own sign function which is 1 when the input is 0 instead of 0 when the input is 0.
+"""
+sign_custom(x) = x >= 0.0 ? 1.0 : -1.0
+
+"""
+    farthest_points(h1::Hyperrectangle, h2::Hyperrectangle)
+
+Find the farthest points
+in a pair of hyperrectangles. This can be done by first finding the line segment connecting their centers. 
+The sign of each coordinate of this line segment will tell us what direction to head in to get 
+to the farthest vertex in each. We then take the p-norm between those two vertices. 
+
+For elements of the center connecting line segment which are 0 (meaning that coordinate of the center is equal)
+we arbitrarily set the direction to be 1.
+
+TODO: this should work under any p norm >= 1, is that right?
+"""
+function farthest_points(h1::Hyperrectangle, h2::Hyperrectangle)
+    center_line = center(h1) - center(h2)
+    # If the center is equal in some dimension, choose the direction to be 1
+    # TODO: double check that is legitimate for dimensions in which the center is 0. 
+    direction = sign_custom.(center_line)
+    point_one = center(h1) + direction .* radius_hyperrectangle(h1)
+    point_two = center(h2) - direction .* radius_hyperrectangle(h2)
+    return point_one, point_two
 end
 
+"""
+    max_dist(h1::Hyperrectangle, h2::Hyperrectangle, p)
+
+Find the maximum p-norm distance between two hyperrectangles. See farthest_points 
+for a description of how the farthest points are found.
+"""
+function max_dist(h1::Hyperrectangle, h2::Hyperrectangle, p)
+    @assert p >= 1.0 "p for p-norm must be greater than or equal to 1"
+    point_one, point_two = farthest_points(h1, h2)
+    return norm(point_one - point_two, p)
+end
+
+"""
+   max_dist_l1(h1::Hyperrectangle, h2::Hyperrectangle)
+
+A special case of the maximum distance between two hyperrectangles for the l-1 norm.
+In this case, it should be equal to the l-1 norm of the center connecting line 
+with the radii of each hyperrectangle added on. If you picture a 2-d case, the extra 
+l-1 norm incurred from moving from the center point to the farthest vertex will be equal to 
+moving half the width over and then half the height up or down. So, in the general case 
+we add on the radius in each coordinate (which is equivalent to half the width and half the height in the 2-d case)
+"""
 function max_dist_l1(h1::Hyperrectangle, h2::Hyperrectangle)
+    center_line = center(h1) - center(h2)
+    return norm(center_line, 1) + sum(radius_hyperrectangle(h1)) + sum(radius_hyperrectangle(h2))
 end
   
 

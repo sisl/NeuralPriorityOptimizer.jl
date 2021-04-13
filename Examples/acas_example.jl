@@ -88,7 +88,8 @@ end
 function write_results(filename, lower_bounds, upper_bounds, times, steps, max_properties, max_index_1, max_index_2, stop_gap)
     open(filename, "w") do f    
         println(f, "property,network,result,lower_bound,upper_bound,time,steps")
-        [writeline(f, i, j, k, lower_bounds[i, j, k], upper_bounds[i, j, k], times[i, j, k], steps[i, j, k], stop_gap) for j=1:max_index_1, k=1:max_index_2, i=1:max_properties] # i last to iterate over properties last
+        # k, j, i at the end of the line to iterate like a for loop with the outermost i
+        [writeline(f, i, j, k, lower_bounds[i, j, k], upper_bounds[i, j, k], times[i, j, k], steps[i, j, k], stop_gap) for k=1:max_index_2, j=1:max_index_1, i=1:max_properties] 
     end
 end
 
@@ -101,10 +102,10 @@ end
 ###
 # Setup your parameters and then run the tests
 ###
-filename=string(@__DIR__, "../results/CAS/acas_p=1_convexopt_max=20000")
+filename=string(@__DIR__, "/../results/CAS/acas_p=2_convexopt_max=20000")
 max_steps = 20000
 properties_to_test = 4
-p = 1
+p = 2
 params = PriorityOptimizerParameters(max_steps=max_steps, stop_frequency=40)
 
 full_time = @elapsed begin

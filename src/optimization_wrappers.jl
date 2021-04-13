@@ -51,13 +51,18 @@ function contained_within_polytope(network, input_set, polytope, params; solver=
     return general_priority_optimization(input_set, overestimate_cell, achievable_value, params, true, -Inf)
 end
 
-function max_network_difference(network1, network2, input_set; solver=Ai2z(), p=2)
+"""
+    max_network_difference(network1, network2, input_set; solver=Ai2z(), p=2)
+
+Find the maximum distance (under a p-norm) between the output of two networks over the input set. 
+"""
+function max_network_difference(network1, network2, input_set, params; solver=Ai2z(), p=2)
     # An overapproximation of the maximum distance using hyperrectangles since 
     # we can analytically find that maximum distance. 
     overestimate_cell = cell -> 
     begin
-        hyperrectangle_reach_1 = overapproximate(Hyperrectangle, forward_network(solver, network1, cell))
-        hyperrectangle_reach_2 = overapproximate(Hyperrectangle, forward_network(solver, network2, cell))
+        hyperrectangle_reach_1 = overapproximate(forward_network(solver, network1, cell), Hyperrectangle)
+        hyperrectangle_reach_2 = overapproximate(forward_network(solver, network2, cell), Hyperrectangle)
         return max_dist(hyperrectangle_reach_1, hyperrectangle_reach_2, p)
     end
 
