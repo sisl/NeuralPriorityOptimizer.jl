@@ -60,8 +60,7 @@ function general_priority_optimization(start_cell::Hyperrectangle, overestimate_
                 if params.verbosity >= 1
                     println("i: ", i)
                     println("lower bound: ", lower_bound)
-                    println("best lower bound: ", best_lower_bound)
-                    println("value: ", value)
+                    println("Interval: ", [best_lower_bound, value])
                     println("max radius: ", max(radius(cell)))
                 end
                 if (value .- lower_bound) <= params.stop_gap
