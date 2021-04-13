@@ -10,11 +10,11 @@ using NeuralVerification
 using LazySets
 
 # Read in the network
-gan_network_file = string(@__DIR__, "/../Networks/GANControl/mlp256x4_msle.nnet")
+gan_network_file = string(@__DIR__, "/../networks/GANControl/mlp256x4_msle.nnet")
 network = read_nnet(gan_network_file)
 
 # Load image data
-data_file = string(@__DIR__, "/../Data/AutoTaxiData/Data_3_18_21/SK_DownsampledGANFocusAreaData.h5")
+data_file = string(@__DIR__, "/../data/AutoTaxiData/Data_3_18_21/SK_DownsampledGANFocusAreaData.h5")
 images = h5read(data_file, "y_train")
 images = reshape(images, 16*8, :)
 labels = h5read(data_file, "X_train")[1:2, :]

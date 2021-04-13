@@ -28,9 +28,10 @@ end
 """
     reaches_polytope(network, input_set, polytope, params; solver=Ai2z(), p=2)
 
-Checks whether a polytope is reachable by finding the distance between the range and the 
+Checks whether a polytope is reachable by finding the distance between the range and the polytope. 
+This is minimizing a function which is 0 in the polytope and equal to the minimum p-norm distance 
+to the polytope outside of the polytope. 
 """
-# reaches polytope with distances 
 function reaches_polytope(network, input_set, polytope, params; solver=Ai2z(), p=2)
     A, b = tosimplehrep(polytope)
     underestimate_cell = cell -> dist_zonotope_polytope(forward_network(solver, network, cell), A, b, p)
@@ -38,10 +39,30 @@ function reaches_polytope(network, input_set, polytope, params; solver=Ai2z(), p
     return general_priority_optimization(input_set, underestimate_cell, achievable_value, params, false, 0.0) # 0.0 is the upper_bound_threshold
 end
 
+"""
+    contained_within_polytope(network, input_set, polytope, params; solver=Ai2z())
 
+Checks whether the output of the network is contained with a polytope. 
+"""
 function contained_within_polytope(network, input_set, polytope, params; solver=Ai2z())
     A, b = tosimplehrep(polytope)
     overestimate_cell = cell -> max_polytope_violation(forward_network(solver, network, cell), A, b)
     achievable_value = cell -> max_polytope_violation(NeuralVerification.compute_output(network, cell.center), A, b)
+    return general_priority_optimization(input_set, overestimate_cell, achievable_value, params, true, -Inf)
+end
+
+function max_network_difference(network1, network2, input_set; solver=Ai2z(), p=2)
+    # An overapproximation of the maximum distance using hyperrectangles since 
+    # we can analytically find that maximum distance. 
+    overestimate_cell = cell -> 
+    begin
+        hyperrectangle_reach_1 = overapproximate(Hyperrectangle, forward_network(solver, network1, cell))
+        hyperrectangle_reach_2 = overapproximate(Hyperrectangle, forward_network(solver, network2, cell))
+        return max_dist(hyperrectangle_reach_1, hyperrectangle_reach_2, p)
+    end
+
+    # The distance between the output from each network at the center of the cell 
+    achievable_value = cell -> norm(NeuralVerification.compute_output(network1, cell.center) - NeuralVerification.compute_output(network2, cell.center))
+
     return general_priority_optimization(input_set, overestimate_cell, achievable_value, params, true, -Inf)
 end

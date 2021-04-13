@@ -62,6 +62,11 @@ git-tree-sha1 = "0e7d0b754769af7ce8517d8e7e31de7b6aa4caaf"
 uuid = "3391f64e-dcde-5f30-b752-e11513730f60"
 version = "0.6.3"
 
+[[CEnum]]
+git-tree-sha1 = "215a9aa4a1f23fbd05b92769fdd62559488d70e9"
+uuid = "fa961155-64e5-5f13-b03f-caf6b980ea82"
+version = "0.4.1"
+
 [[CRlibm]]
 deps = ["Libdl"]
 git-tree-sha1 = "9d1c22cff9c04207f336b8e64840d0bd40d86e0e"
@@ -241,6 +246,12 @@ deps = ["EarCut_jll", "IterTools", "LinearAlgebra", "StaticArrays", "StructArray
 git-tree-sha1 = "c7f81b22b6c255861be4007a16bfdeb60e1c7f9b"
 uuid = "5c1252a2-5f33-56bf-86c9-59e7332b4326"
 version = "0.3.11"
+
+[[Gurobi]]
+deps = ["CEnum", "Libdl", "MathOptInterface"]
+git-tree-sha1 = "e66fa4ef62605be7730aa22832785ad9763e090e"
+uuid = "2e9cd046-0924-5485-92f1-d5272153d98b"
+version = "0.9.10"
 
 [[HDF5]]
 deps = ["Blosc", "Compat", "HDF5_jll", "Libdl", "Mmap", "Random", "Requires"]

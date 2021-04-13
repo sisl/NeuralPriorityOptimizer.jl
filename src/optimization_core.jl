@@ -56,11 +56,11 @@ function general_priority_optimization(start_cell::Hyperrectangle, overestimate_
                     best_lower_bound = lower_bound
                     best_x = cell.center
                 end
-                println("i: ", i)
-                println("lower bound: ", lower_bound)
-                println("best lower bound: ", best_lower_bound)
-                println("value: ", value)
-                println("max radius: ", max(radius(cell)))
+                # println("i: ", i)
+                # println("lower bound: ", lower_bound)
+                # println("best lower bound: ", best_lower_bound)
+                # println("value: ", value)
+                # println("max radius: ", max(radius(cell)))
                 if (value .- lower_bound) <= params.stop_gap
                     return best_x, best_lower_bound, value, i
                 end

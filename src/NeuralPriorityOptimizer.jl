@@ -1,7 +1,8 @@
 module NeuralPriorityOptimizer
 using NeuralVerification, LazySets, Parameters, DataStructures, LinearAlgebra, HDF5
-using Convex, Mosek, MosekTools, JuMP
+using Convex, Mosek, MosekTools, JuMP, Gurobi
 import JuMP.MOI.OPTIMAL, JuMP.MOI.INFEASIBLE, JuMP.MOI.INFEASIBLE_OR_UNBOUNDED
+gurobi_env = Gurobi.Env()
 
 include("utils.jl")
 include("optimization_core.jl")

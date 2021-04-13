@@ -1,5 +1,5 @@
 # Read in the network. Ground truth are from comparing this optimizer's first version, MIPVerify, and Marabou and seeing agreement. 
-network_file = string(@__DIR__, "/../Networks/GANControl/full_big_uniform.nnet")
+network_file = string(@__DIR__, "/../networks/GANControl/full_big_uniform.nnet")
 network = read_nnet(network_file)
 
 # Define the coefficients for a linear objective

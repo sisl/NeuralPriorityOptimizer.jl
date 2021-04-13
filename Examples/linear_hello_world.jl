@@ -8,7 +8,7 @@ using NeuralVerification
 using LazySets
 
 # Read in the network
-network_file = string(@__DIR__, "/../Networks/GANControl/full_big_uniform.nnet")
+network_file = string(@__DIR__, "/../networks/GANControl/full_big_uniform.nnet")
 network = read_nnet(network_file)
 
 # Define the coefficients for a linear objective
