@@ -293,6 +293,25 @@ Compute the maximum violation of the constraints for a polytope described by Ax 
 max_polytope_violation(point::Vector{Float64}, A, b) = max(maximum(A * point - b), 0.0)
 
 """
+    optimize_convex_over_zonotope(zonotope::Zonotope, convex_fcn, max)
+
+Optimize a convex fcn over a zonotope. The convex fcn should map from a list of 
+Convex variables the length of the dimension of the zonotope (equal to the height
+ of its generator matrix) to a convex expression. 
+"""
+optimize_convex_over_zonotope(zonotope::Zonotope, objective_fcn, max)
+    G, c = zonotope.generators, zonotope.center 
+    n, m = size(G) 
+    x = Variable(m) # points in the hypercube defining the zonotope 
+    obj = convex_fcn(G * x + c)
+    prob = max ? maximize(obj) : minimize(obj) 
+    solve!(prob, Mosek.Optimizer(LOG=0))
+    @assert prob.status == OPTIMAL "Solve must result in optimal status"
+    return prob.optval
+end
+
+
+"""
     get_acas_sets(property_number)
 
 Get the input and output sets for acas under the standard definition of a problem 

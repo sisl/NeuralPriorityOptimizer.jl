@@ -65,6 +65,8 @@ function general_priority_optimization(start_cell::Hyperrectangle, overestimate_
                     
                     println("Cell low: ", low(cell))
                     println("Cell high: ", high(cell))
+                    println("lower_bound: ", lower_bound)
+                    println("lower bound threshold: ", lower_bound_threshold)
                 end
                 if (value .- lower_bound) <= params.stop_gap || lower_bound > lower_bound_threshold
                     return best_x, best_lower_bound, value, i
@@ -125,7 +127,7 @@ corresponds to having a threshold on the lower bound of the minimization problem
 
 This function returns the best input found, a lower bound on the optimal value, an upper bound on the optimal value, and the number of steps taken.
 """
-function general_priority_optimization(start_cell::Hyperrectangle, relaxed_optimize_cell, evaluate_objective, params::PriorityOptimizerParameters, maximize; bound_threshold_realizable=Inf, bound_threshold_approximate=-Inf)
+function general_priority_optimization(start_cell::Hyperrectangle, relaxed_optimize_cell, evaluate_objective, params::PriorityOptimizerParameters, maximize; bound_threshold_realizable=(maximize ? Inf : -Inf), bound_threshold_approximate=(maximize ? -Inf : Inf))
     if maximize
         return general_priority_optimization(start_cell, relaxed_optimize_cell, evaluate_objective, params, bound_threshold_realizable, bound_threshold_approximate)
     else 

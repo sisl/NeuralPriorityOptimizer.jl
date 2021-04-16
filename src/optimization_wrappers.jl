@@ -26,6 +26,25 @@ function optimize_linear(network, input_set, coeffs, params; maximize=true, solv
 end
 
 """
+    optimize_convex(network, input_set, convex_fcn, evaluate_convex_fcn, params; maximize=true, solver=Ai2z())
+
+If minimizing (maximize=false) minimize a convex function over the range of the network
+If maximizing (maximize=true) maximize a concave function over the range of the network
+
+convex_fcn should map a list of variables the length of the dimension of the zonotope to 
+a convex or concave expression (defined using Convex.jl disciplined convex programming 
+building blocks) depending on whether minimizing or maximizing.
+
+evaluate_convex_fcn should map from a list of floats the length of the dimension of the zonotope 
+to the value of the objective at that point (in the output space). 
+"""
+function optimize_convex(network, input_set, convex_fcn, evaluate_convex_fcn, params; maximize=true, solver=Ai2z())
+    approximate_optimize_cell = cell -> optimize_convex_over_zonotope(forward_network(solver, network, cell), convex_fcn, maximize)
+    achievable_value = cell -> evaluate_convex_fcn(cell.center)
+    return general_priority_optimization(input_set, approximate_optimize_cell, achievable_value, params, maximize)
+end
+
+"""
     reaches_polytope(network, input_set, polytope, params; solver=Ai2z(), p=2)
 
 Checks whether a polytope is reachable by finding the distance between the range and the polytope. 
@@ -40,15 +59,23 @@ function reaches_polytope(network, input_set, polytope, params; solver=Ai2z(), p
 end
 
 """
-    project_onto_polytope(network, input_set, polytope, params; solver=Ai2z(), p=2)
+    distance_to_polytope(network, input_set, polytope, params; solver=Ai2z(), p=2)
 
 Projects the range of a network onto a polytope. This is the same as reaches_polytope except it won't 
 stop early if it proves that the distance of the projection is > 0. 
+
+Note that if you want the point on the polytope closest to the range of the network 
+you would have to take the optimal input which you get back from calling this function,
+pass it through the network, then project that point 
+onto the polytope by solving a linear program min._y ||y_opt - y|| s.t. Ay <= b. where y_opt is 
+the output of the network closest to the polytope. 
 """
-function project_onto_polytope(network, input_set, polytope, params; solver=Ai2z(), p=2)
+function distance_to_polytope(network, input_set, polytope, params; solver=Ai2z(), p=2)
     A, b = tosimplehrep(polytope)
-    underestimate_cell = cell -> dist_zonotope_polytope(forward_network(solver, network, cell), A, b, p)
-    achievable_value = cell -> dist_polytope_point(A, b, NeuralVerification.compute_output(network, cell.center), p)
+    # underestimate_cell = cell -> dist_zonotope_polytope(forward_network(solver, network, cell), A, b, p)
+    # achievable_value = cell -> dist_polytope_point(A, b, NeuralVerification.compute_output(network, cell.center), p)
+    underestimate_cell = cell -> dist_zonotope_polytope_linf(forward_network(solver, network, cell), A, b)
+    achievable_value = cell -> dist_polytope_point_linf(A, b, NeuralVerification.compute_output(network, cell.center))
     return general_priority_optimization(input_set, underestimate_cell, achievable_value, params, false) # if we ever show that we must have a distance > 0, then we know we can't reach the polytope 
 end
 
