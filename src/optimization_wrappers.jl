@@ -9,7 +9,7 @@ that the solver took.
 """
 function project_onto_range(network, input_set, y₀, p, params; solver=Ai2z())
     approximate_optimize_cell = cell -> dist_zonotope_point(forward_network(solver, network, cell), y₀, p)
-    achievable_value = cell -> norm(y₀ - NeuralVerification.compute_output(network, cell.center), p)
+    achievable_value = cell -> cell.center, norm(y₀ - NeuralVerification.compute_output(network, cell.center), p)
     return general_priority_optimization(input_set, approximate_optimize_cell, achievable_value, params, false) # TODO: should there be early stopping here?
 end
 
@@ -21,26 +21,31 @@ Optimize a linear function on the output of a network. This returns the optimal 
 """
 function optimize_linear(network, input_set, coeffs, params; maximize=true, solver=Ai2z())
     approximate_optimize_cell = cell -> ρ(coeffs, forward_network(solver, network, cell))
-    achievable_value = cell -> compute_linear_objective(network, cell.center, coeffs)
+    achievable_value = cell -> cell.center, compute_linear_objective(network, cell.center, coeffs)
     return general_priority_optimization(input_set, approximate_optimize_cell, achievable_value, params, maximize)
 end
 
 """
-    optimize_convex(network, input_set, convex_fcn, evaluate_convex_fcn, params; maximize=true, solver=Ai2z())
+    optimize_convex_program(network, input_set, convex_fcn, evaluate_convex_fcn, params; maximize=true, solver=Ai2z())
 
 If minimizing (maximize=false) minimize a convex function over the range of the network
 If maximizing (maximize=true) maximize a concave function over the range of the network
 
-convex_fcn should map a list of variables the length of the dimension of the zonotope to 
-a convex or concave expression (defined using Convex.jl disciplined convex programming 
-building blocks) depending on whether minimizing or maximizing.
+Called optimize convex program since it can be either convex or concave depending on max. vs. min.
 
-evaluate_convex_fcn should map from a list of floats the length of the dimension of the zonotope 
-to the value of the objective at that point (in the output space). 
+obj_fcn should map a list of variables the length of the dimension of the zonotope to 
+a convex or concave expression (defined using Convex.jl disciplined convex programming 
+building blocks) depending on whether minimizing or maximizing. It will also be used to evaluate 
+the function 
 """
-function optimize_convex(network, input_set, convex_fcn, evaluate_convex_fcn, params; maximize=true, solver=Ai2z())
-    approximate_optimize_cell = cell -> optimize_convex_over_zonotope(forward_network(solver, network, cell), convex_fcn, maximize)
-    achievable_value = cell -> evaluate_convex_fcn(cell.center)
+function optimize_convex_program(network, input_set, obj_fcn, params; maximize=true, solver=Ai2z())
+    approximate_optimize_cell = cell -> convex_program_over_zonotope(forward_network(solver, network, cell), obj_fcn, maximize)
+    # Get an achievable value by evaluating the convex function for the centerpoint in the cell 
+    x = Variable(length(network.layers[end].bias)) # make your variable just once
+    achievable_value = cell -> begin
+        x.value = NeuralVerification.compute_output(network, cell.center)
+        return cell.center, evaluate(obj_fcn(x))[1]
+    end
     return general_priority_optimization(input_set, approximate_optimize_cell, achievable_value, params, maximize)
 end
 
@@ -54,7 +59,7 @@ to the polytope outside of the polytope.
 function reaches_polytope(network, input_set, polytope, params; solver=Ai2z(), p=2)
     A, b = tosimplehrep(polytope)
     underestimate_cell = cell -> dist_zonotope_polytope(forward_network(solver, network, cell), A, b, p)
-    achievable_value = cell -> dist_polytope_point(A, b, NeuralVerification.compute_output(network, cell.center), p)
+    achievable_value = cell -> cell.center, dist_polytope_point(A, b, NeuralVerification.compute_output(network, cell.center), p)
     return general_priority_optimization(input_set, underestimate_cell, achievable_value, params, false; bound_threshold_approximate=0.0) # if we ever show that we must have a distance > 0, then we know we can't reach the polytope 
 end
 
@@ -72,10 +77,8 @@ the output of the network closest to the polytope.
 """
 function distance_to_polytope(network, input_set, polytope, params; solver=Ai2z(), p=2)
     A, b = tosimplehrep(polytope)
-    # underestimate_cell = cell -> dist_zonotope_polytope(forward_network(solver, network, cell), A, b, p)
-    # achievable_value = cell -> dist_polytope_point(A, b, NeuralVerification.compute_output(network, cell.center), p)
-    underestimate_cell = cell -> dist_zonotope_polytope_linf(forward_network(solver, network, cell), A, b)
-    achievable_value = cell -> dist_polytope_point_linf(A, b, NeuralVerification.compute_output(network, cell.center))
+    underestimate_cell = cell -> dist_zonotope_polytope(forward_network(solver, network, cell), A, b, p)
+    achievable_value = cell -> cell.center, dist_polytope_point(A, b, NeuralVerification.compute_output(network, cell.center), p)
     return general_priority_optimization(input_set, underestimate_cell, achievable_value, params, false) # if we ever show that we must have a distance > 0, then we know we can't reach the polytope 
 end
 
@@ -87,7 +90,7 @@ Checks whether the output of the network is contained with a polytope.
 function contained_within_polytope(network, input_set, polytope, params; solver=Ai2z())
     A, b = tosimplehrep(polytope)
     overestimate_cell = cell -> max_polytope_violation(forward_network(solver, network, cell), A, b)
-    achievable_value = cell -> max_polytope_violation(NeuralVerification.compute_output(network, cell.center), A, b)
+    achievable_value = cell -> cell.center, max_polytope_violation(NeuralVerification.compute_output(network, cell.center), A, b)
     return general_priority_optimization(input_set, overestimate_cell, achievable_value, params, true; bound_threshold_realizable=0.0) # if we ever find a concrete value > 0 then return
 end
 
@@ -107,7 +110,7 @@ function max_network_difference(network1, network2, input_set, params; solver=Ai
     end
 
     # The distance between the output from each network at the center of the cell 
-    achievable_value = cell -> norm(NeuralVerification.compute_output(network1, cell.center) - NeuralVerification.compute_output(network2, cell.center), p)
+    achievable_value = cell -> cell.center, norm(NeuralVerification.compute_output(network1, cell.center) - NeuralVerification.compute_output(network2, cell.center), p)
 
     return general_priority_optimization(input_set, overestimate_cell, achievable_value, params, true)
 end

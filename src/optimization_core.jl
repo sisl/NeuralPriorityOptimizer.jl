@@ -22,7 +22,7 @@ end
 Use a priority based approach to split your space and optimize an objective function. We assume we are maximizing our objective. 
 General to any objective function passed in as well as an evaluate objective 
 The function overestimate_cell takes in a cell and returns an overestimate of the objective value. 
-The function achievable_value takes in the input cell and finds an achievable objective value in that cell. 
+The function achievable_value takes in the input cell and returns an input and the value it achieves in that cell. 
 This optimization strategy then uses these functions to provide bounds on the maximum objective
 
 If we ever get an upper bound on our objective that's lower than the upper_bound_threshold then we return
@@ -31,7 +31,6 @@ This function returns the best input found, a lower bound on the optimal value, 
 """
 function general_priority_optimization(start_cell::Hyperrectangle, overestimate_cell, achievable_value, params::PriorityOptimizerParameters, lower_bound_threshold, upper_bound_threshold)
     initial_cells = split_multiple_times(start_cell, params.initial_splits)
-    println("Done with initial splits")
     # Create your queue, then add your original new_cells 
     cells = PriorityQueue(Base.Order.Reverse) # pop off largest first 
     [enqueue!(cells, cell, overestimate_cell(cell)) for cell in initial_cells] # add with priority
@@ -52,10 +51,10 @@ function general_priority_optimization(start_cell::Hyperrectangle, overestimate_
         # Early stopping
         if params.early_stop
             if i % params.stop_frequency == 0
-                lower_bound = achievable_value(cell)
+                input_in_cell, lower_bound = achievable_value(cell)
                 if lower_bound > best_lower_bound
                     best_lower_bound = lower_bound
-                    best_x = cell.center
+                    best_x = input_in_cell
                 end
                 if params.verbosity >= 1
                     println("i: ", i)
@@ -83,10 +82,10 @@ function general_priority_optimization(start_cell::Hyperrectangle, overestimate_
                 # Return a concrete value and the upper bound from the parent cell
                 # that was just dequeued, as it must have higher value than all other cells
                 # that were on the queue, and they constitute a tiling of the space
-                lower_bound = achievable_value(cell)
+                input_in_cell, lower_bound = achievable_value(cell)
                 if lower_bound > best_lower_bound
                     best_lower_bound = lower_bound
-                    best_x = cell.center
+                    best_x = input_in_cell
                 end
                 return best_x, best_lower_bound, value, i 
             end
@@ -96,10 +95,10 @@ function general_priority_optimization(start_cell::Hyperrectangle, overestimate_
     end
     # The largest value in our queue is the approximate optimum 
     cell, value = peek(cells)
-    lower_bound = achievable_value(cell)
+    input_in_cell, lower_bound = achievable_value(cell)
     if lower_bound > best_lower_bound
         best_lower_bound = lower_bound
-        best_x = cell.center
+        best_x = input_in_cell
     end
     return best_x, best_lower_bound, value, params.max_steps
 end
