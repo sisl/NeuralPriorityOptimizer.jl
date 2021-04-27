@@ -3,6 +3,13 @@ This library is meant to perform a variety of simple optimization tasks. The wra
 
 A writeup (in progress) describing how the algorithm works can be found in this [overleaf](https://www.overleaf.com/read/qvkssjmbrgyr). Any feedback or clarifying questions would be greatly appreciated! You can post them as issues to this repository or reach me by email at castrong@stanford.edu.  
 
+## Quick start
+
+To add this package you must have [the Julia programming language](https://julialang.org/) installed. Enter the Julia REPL, then type ] to enter the package manager. Then run the following line:
+`pkg> add https://github.com/sisl/NeuralPriorityOptimizer.jl`
+
+Several examples of loading networks and running simple queries can be found in the `examples` folder. For example, `examples/linear_hello_world.jl` shows how to load a network then optimize a linear function over the range of the network within an input region. Feedforward ReLU networks are the only type of networks currently supported by this tool. A general optimization algorithm and several useful wrappers are implemented and described in the following sections of the README.
+
 ## Wrappers
 Here's a list of the currently implemented wrappers that are around the core optimizer. All can be found in [this file](https://github.com/castrong/NeuralPriorityOptimizer.jl/blob/main/src/optimization_wrappers.jl).
 
@@ -62,9 +69,9 @@ The core function has the signature `general_priority_optimization(start_cell::H
 There is also a wrapper to this core function which allows for maximization and minimization with the signature `general_priority_optimization(start_cell::Hyperrectangle, relaxed_optimize_cell, evaluate_objective, params::PriorityOptimizerParameters, maximize; bound_threshold_realizable=(maximize ? Inf : -Inf), bound_threshold_approximate=(maximize ? -Inf : Inf))`. For this function `start_cell` is the starting cell, `relaxed_optimize_cell` gives an upper bound for a cell if maximizing and a lower bound for a cell if minimizing, `evaluate_objective` which gives an achievable objective value and the corresponding input, `params` which are again the solver parameters, `maximize` which is true if maximizing and false if minimizing. If minimizing the negative of the objective is maximized with the other core function. Then, `bound_threshold_realizable` if maximizing is used as the `lower_bound_threshold` and if minimizing has its negative used as the `lower_bound_threshold`. This is meant to represent the threshold on the concrete values found by the `achievable_value` function which when you do better than that you can return.   `bound_threshold_approximate` if maximizing is used as the `upper_bound_threshold` and if minimizing has its negative used as the `upper_bound_threshold`. This is meant to represent the threshold on the approximate values found by the `relaxed_optimize_cell` which when you do better than it you can return. These thresholds are useful in wrappers such as `reaches_polytope` which allows it to return after showing that it can reach the polytope. 
 
 ## Networks available in the repository 
-We have several different types of networks available in the [networks folder](https://github.com/castrong/NeuralPriorityOptimizer.jl/tree/main/networks) of the repository. We have: 
+We have several different types of networks available in the [networks folder](https://github.com/castrong/NeuralPriorityOptimizer.jl/tree/main/networks) of the repository. All networks are provided in .nnet format. This format is described, and helper functions to convert between other commonly used formats are provided in [this repository](https://github.com/sisl/NNet). Feedforward ReLU networks are the only type of networks currently supported by this tool. We have the following folders of networks: 
 
-(1) The folder CAS which contains networks that represent the ACAS Xu tables. See [Policy compression for aircraft collision avoidance systems](https://ieeexplore.ieee.org/document/7778091) 
+(1) The folder CAS which contains networks trained to emulate the ACAS Xu tables. See [Policy compression for aircraft collision avoidance systems](https://ieeexplore.ieee.org/document/7778091) for the rationale behind these networks.
 
 (2) The folder AutoTaxi contains networks that map from an image to a control effort for an aircraft taxiing down a runway. See [Validation of Image-Based Neural Network Controllers through Adaptive Stress Testing](https://arxiv.org/pdf/2003.02381.pdf) section IV for description of this use case. The network maps from an image to a crosstrack error and heading error. Then, in this repository the networks have a single output with the last layer representing the coefficients for the proportional controller which take the crosstrack error and heading error and map them to a control effort to steer the plane.
 
