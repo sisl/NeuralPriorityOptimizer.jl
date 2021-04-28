@@ -1,10 +1,9 @@
 # NeuralPriorityOptimizer
 This library is meant to perform a variety of simple optimization tasks. The wrapper section describes how to run several useful optimization tasks over neural networks. For example, projecting a point onto the range of a network or optimizing a linear or convex objective over the range of a network. Examples of the use of most wrappers can be found [here](https://github.com/castrong/NeuralPriorityOptimizer.jl/blob/main/Examples/) 
 
-A writeup (in progress) describing how the algorithm works can be found in this [overleaf](https://www.overleaf.com/read/qvkssjmbrgyr). Any feedback or clarifying questions would be greatly appreciated! You can post them as issues to this repository or reach me by email at castrong@stanford.edu.  
+<!---A writeup (in progress) describing how the algorithm works can be found in this [overleaf](https://www.overleaf.com/read/qvkssjmbrgyr). Any feedback or clarifying questions would be greatly appreciated! You can post them as issues to this repository or reach me by email at castrong@stanford.edu.  --->
 
 ## Quick start
-
 To add this package you must have [the Julia programming language](https://julialang.org/) installed. Enter the Julia REPL, then type ] to enter the package manager. Then run the following line:
 `pkg> add https://github.com/sisl/NeuralPriorityOptimizer.jl`
 
