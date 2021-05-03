@@ -28,7 +28,7 @@ function test_acas_network(index1, index2, property_index, params; p=1)
         println("Checking if contained within polytope")
         time = @elapsed x_star, lower_bound, upper_bound, steps = contained_within_polytope(network, input_set, output_set, params)
     elseif output_set isa PolytopeComplement
-        time = @elapsed x_star, lower_bound, upper_bound, steps = reaches_polytope(network, input_set, output_set.P, params, p=p)
+        time = @elapsed x_star, lower_bound, upper_bound, steps = reaches_polytope_binary(network, input_set, output_set.P, params)
     else
         @assert false "Haven't implemented reach polytope yet"
     end
@@ -102,11 +102,13 @@ end
 ###
 # Setup your parameters and then run the tests
 ###
-filename=string(@__DIR__, "/../results/CAS/acas_p=customlinf_convexopt_max=20000.csv")
+filename=string(@__DIR__, "/../results/CAS/acas_binaryreach_test.csv")
 max_steps = 20000
 properties_to_test = 4
+max_index_1 = 5
+max_index_2 = 9
 p = 1
-params = PriorityOptimizerParameters(max_steps=max_steps, stop_frequency=40)
+params = PriorityOptimizerParameters(max_steps=max_steps, stop_frequency=200, verbosity=1)
 
 full_time = @elapsed begin
     lower_bounds = Array{Float64, 3}(undef, 4, 5, 9)
@@ -114,8 +116,8 @@ full_time = @elapsed begin
     times = Array{Float64, 3}(undef, 4, 5, 9)
     steps = Array{Integer, 3}(undef, 4, 5, 9)
     for property_index = 1:properties_to_test
-        for i = 1:5
-            for j = 1:9
+        for i = 1:max_index_1
+            for j = 1:max_index_2
                 println("Property ", property_index, " Network ", i, "-", j)
                 lower_bounds[property_index, i, j], upper_bounds[property_index, i, j], times[property_index, i, j], steps[property_index, i, j] = test_acas_network(i, j, property_index, params; p=p)
                 println()
@@ -128,7 +130,7 @@ println("p norm: ", p)
 println("Max steps: ", max_steps)
 println("Full time: ", full_time)
 
-print_results(lower_bounds, upper_bounds, times, steps, 4, 5, 9, params.stop_gap)
-write_results(filename, lower_bounds, upper_bounds, times, steps, 4, 5, 9, params.stop_gap)
+print_results(lower_bounds, upper_bounds, times, steps, properties_to_test, max_index_1, max_index_2, params.stop_gap)
+write_results(filename, lower_bounds, upper_bounds, times, steps, properties_to_test, max_index_1, max_index_2, params.stop_gap)
 
 

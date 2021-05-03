@@ -131,7 +131,10 @@ function general_priority_optimization(start_cell::Hyperrectangle, relaxed_optim
         return general_priority_optimization(start_cell, relaxed_optimize_cell, evaluate_objective, params, bound_threshold_realizable, bound_threshold_approximate)
     else 
         overestimate_cell = cell -> -relaxed_optimize_cell(cell)
-        neg_evaluate_objective = cell -> -evaluate_objective(cell)
+        neg_evaluate_objective = cell -> begin
+            input, result = evaluate_objective(cell)
+            return input, -result
+        end
         x, lower, upper, steps = general_priority_optimization(start_cell, overestimate_cell, neg_evaluate_objective, params, -bound_threshold_realizable, -bound_threshold_approximate)
         return x, -upper, -lower, steps
     end

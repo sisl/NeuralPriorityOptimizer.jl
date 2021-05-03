@@ -1,3 +1,5 @@
+gurobi_env = Gurobi.Env()
+
 """
     elem_basis(i, n)
     
@@ -308,6 +310,48 @@ function convex_program_over_zonotope(zonotope::Zonotope, objective_fcn, max)
     solve!(prob, Mosek.Optimizer(LOG=0))
     @assert prob.status == OPTIMAL "Solve must result in optimal status"
     return prob.optval
+end
+
+"""
+    check_disjoint(zonotope::Zonotope, A, b; solver=Gurobi.Optimizer)
+
+Checks whether the zonotope is disjoint from the polytope described by A and b 
+"""
+function check_disjoint(zonotope::Zonotope, A, b; solver=Gurobi.Optimizer)
+    G, c = zonotope.generators, zonotope.center
+    n, m = size(G)
+    model = Model(with_optimizer(solver, OutputFlag=0))
+    
+    # Introduce x in the basis of the zonotope, z in the zonotope,
+    # then enforce it is in the polytope too
+    x = @variable(model, [1:m])
+    z = G * x + c
+    @constraint(model, x .>= -1.0)
+    @constraint(model, x .<= 1.0)
+    @constraint(model, A*z .<= b)
+
+    optimize!(model)
+
+    # If we can't have z be in the zonotope and the polytope then return true, they are disjoint
+    if termination_status(model) == INFEASIBLE
+        return true 
+    elseif termination_status(model) == OPTIMAL 
+        return false 
+    else
+        @assert false "Unexpected termination status"
+    end
+end
+
+"""
+    quick_check_disjoint(zonotope, constraints)
+
+Tries to quickly check whether a zonotope is disjoint from a polytope passed in as a list of halfspaces 
+Returns true if it can show it's disjoint, otherwise returns false in which case it is inconclusive.
+It does this by seeing if the zonotope is disjoint from any of the halfspaces that make up the polytope.
+If it is, it means it won't ever be able to satisfy that constraint so it must not intersect. 
+"""
+function quick_check_disjoint(zonotope, constraints)
+    return any(isdisjoint(zonotope, constraint) for constraint in constraints)
 end
 
 

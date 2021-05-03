@@ -59,8 +59,30 @@ to the polytope outside of the polytope.
 function reaches_polytope(network, input_set, polytope, params; solver=Ai2z(), p=2)
     A, b = tosimplehrep(polytope)
     underestimate_cell = cell -> dist_zonotope_polytope(forward_network(solver, network, cell), A, b, p)
-    achievable_value = cell -> cell.center, dist_polytope_point(A, b, NeuralVerification.compute_output(network, cell.center), p)
+    achievable_value = cell -> (cell.center, dist_polytope_point(A, b, NeuralVerification.compute_output(network, cell.center), p))
     return general_priority_optimization(input_set, underestimate_cell, achievable_value, params, false; bound_threshold_approximate=0.0) # if we ever show that we must have a distance > 0, then we know we can't reach the polytope 
+end
+
+function reaches_polytope_binary(network, input_set, polytope, params; solver=Ai2z())
+    # first get a zonotope overapproximation of the polytope we'll use to filter out 
+    # clear lack of intersections?
+    # for now hyperrectangle overapprox? or how to quickly filter out ones that don't intersect? 
+    
+    # have it be 1 if no intersection, 0 if intersection, and try to minimize 
+    # so an objective function that's 0 inside the polytope and 1 outside
+    halfspaces = polytope.constraints
+    A, b = tosimplehrep(polytope)
+    underestimate_cell = cell -> begin
+                                    reach = forward_network(solver, network, cell)
+                                    if !quick_check_disjoint(reach, halfspaces)
+                                        return convert(Int, check_disjoint(reach, A, b))
+                                    else 
+                                        return 1.0
+                                    end
+                                 end
+    achievable_value = cell -> (cell.center, convert(Int, !(compute_output(network, cell.center) ∈ polytope)))
+    
+    return general_priority_optimization(input_set, underestimate_cell, achievable_value, params, false; bound_threshold_approximate=0.5, bound_threshold_realizable=0.5) # if ever show distance lower bound is above 0.5 (will mean it's 1) then there's no intersection left, so return. If we ever get a concrete value below 0.5 it will mean it's 0, which means we actually reached it. 
 end
 
 """
@@ -78,7 +100,7 @@ the output of the network closest to the polytope.
 function distance_to_polytope(network, input_set, polytope, params; solver=Ai2z(), p=2)
     A, b = tosimplehrep(polytope)
     underestimate_cell = cell -> dist_zonotope_polytope(forward_network(solver, network, cell), A, b, p)
-    achievable_value = cell -> cell.center, dist_polytope_point(A, b, NeuralVerification.compute_output(network, cell.center), p)
+    achievable_value = cell -> (cell.center, dist_polytope_point(A, b, NeuralVerification.compute_output(network, cell.center), p))
     return general_priority_optimization(input_set, underestimate_cell, achievable_value, params, false) # if we ever show that we must have a distance > 0, then we know we can't reach the polytope 
 end
 
@@ -90,7 +112,7 @@ Checks whether the output of the network is contained with a polytope.
 function contained_within_polytope(network, input_set, polytope, params; solver=Ai2z())
     A, b = tosimplehrep(polytope)
     overestimate_cell = cell -> max_polytope_violation(forward_network(solver, network, cell), A, b)
-    achievable_value = cell -> cell.center, max_polytope_violation(NeuralVerification.compute_output(network, cell.center), A, b)
+    achievable_value = cell -> (cell.center, max_polytope_violation(NeuralVerification.compute_output(network, cell.center), A, b))
     return general_priority_optimization(input_set, overestimate_cell, achievable_value, params, true; bound_threshold_realizable=0.0) # if we ever find a concrete value > 0 then return
 end
 
@@ -110,7 +132,7 @@ function max_network_difference(network1, network2, input_set, params; solver=Ai
     end
 
     # The distance between the output from each network at the center of the cell 
-    achievable_value = cell -> cell.center, norm(NeuralVerification.compute_output(network1, cell.center) - NeuralVerification.compute_output(network2, cell.center), p)
+    achievable_value = cell -> (cell.center, norm(NeuralVerification.compute_output(network1, cell.center) - NeuralVerification.compute_output(network2, cell.center), p))
 
     return general_priority_optimization(input_set, overestimate_cell, achievable_value, params, true)
 end
