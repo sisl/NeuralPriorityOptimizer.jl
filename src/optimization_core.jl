@@ -78,7 +78,7 @@ function general_priority_optimization(start_cell::Hyperrectangle, overestimate_
         for new_cell in new_cells
             # If you've made the max objective cell tiny
             # break (otherwise we end up with zero radius cells)
-            if max(radius(new_cell) < NeuralVerification.TOL[])
+            if radius(new_cell) < NeuralVerification.TOL[]
                 # Return a concrete value and the upper bound from the parent cell
                 # that was just dequeued, as it must have higher value than all other cells
                 # that were on the queue, and they constitute a tiling of the space
