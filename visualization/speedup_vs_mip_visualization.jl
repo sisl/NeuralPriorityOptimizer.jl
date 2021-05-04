@@ -33,12 +33,23 @@ println("Times mip: ", times_mip)
 println("Speedups: ", times_mip ./ times_priority)
 
 # Create the plots
+
+# Both times on a plot vs. radius
 plot = Axis(style="black", xlabel="Radius of input perturbation", ylabel="Time", title="Solve time vs. radius")
 plot.legendStyle = "at={(1.05,1.0)}, anchor = north west"
 push!(plot, Plots.Linear(radii, times_mip, legendentry="MIP", markSize=1.0))
 push!(plot, Plots.Linear(radii, times_priority, legendentry="Priority Optimizer", markSize=1.0))
 save("./visualization/plots/comparison_to_mip/times_vs_radius.pdf", plot)
 save("./visualization/plots/comparison_to_mip/times_vs_radius.tex", plot)
+
+# Speedups vs. radius 
+plot = Axis(style="black", xlabel="Radius of input perturbation", ylabel="Speedup", title="Speedup vs. radius", ymode="log")
+plot.legendStyle = "at={(1.05,1.0)}, anchor = north west"
+push!(plot, Plots.Linear(radii, times_mip ./ times_priority, markSize=1.0))
+save("./visualization/plots/comparison_to_mip/speedup_vs_radius.pdf", plot)
+save("./visualization/plots/comparison_to_mip/speedup_vs_radius.tex", plot)
+
+
 
 plot = Axis(style="black", axisEqual=true, xlabel="Time of Priority Optimizer", ylabel="Time of DeepZ + MIP", title="DeepZ + MIP vs. Priority Optimizer")
 plot.legendStyle = "at={(1.05,1.0)}, anchor = north east"
