@@ -1,0 +1,45 @@
+\documentclass[tikz]{standalone}
+\usepackage{pgfplots}
+\pgfplotsset{compat=newest}
+\pgfplotsset{every axis legend/.append style={%
+cells={anchor=west}}
+}
+\usetikzlibrary{arrows}
+\tikzset{>=stealth'}
+
+\begin{document}
+\begin{tikzpicture}[]
+\begin{axis}[
+  axis equal = {true},
+  legend style = {at={(1.05,1.0)}, anchor = north west},
+  ylabel = {Time of DeepZ + MIP},
+  title = {DeepZ + MIP vs. Priority Optimizer},
+  xlabel = {Time of Priority Optimizer},
+  black
+]
+
+\addplot+[
+  draw = none,
+  mark size = {1.0}
+] coordinates {
+  (0.465945696, 0.019233845)
+  (0.018623026, 0.022304629)
+  (0.071476041, 0.031418115)
+  (0.036081881, 0.030623215)
+  (0.042230627, 0.014900793)
+  (0.025753228, 0.022915338)
+  (0.055634719, 0.034330358)
+  (0.029579747, 0.037327517)
+  (0.056198651, 0.389828453)
+  (0.084520705, 0.860928497)
+  (0.091574042, 2.293617902)
+  (0.161171113, 4.928446751)
+  (0.139801583, 5.899929212)
+  (0.140682861, 65.541657653)
+};
+\addlegendentry{{}{DeepZ + MIP}}
+
+\end{axis}
+\end{tikzpicture}
+
+\end{document}

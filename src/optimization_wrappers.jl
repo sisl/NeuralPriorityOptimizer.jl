@@ -21,7 +21,7 @@ Optimize a linear function on the output of a network. This returns the optimal 
 """
 function optimize_linear(network, input_set, coeffs, params; maximize=true, solver=Ai2z())
     approximate_optimize_cell = cell -> ρ(coeffs, forward_network(solver, network, cell))
-    achievable_value = cell -> cell.center, compute_linear_objective(network, cell.center, coeffs)
+    achievable_value = cell -> (cell.center, compute_linear_objective(network, cell.center, coeffs))
     return general_priority_optimization(input_set, approximate_optimize_cell, achievable_value, params, maximize)
 end
 
@@ -135,4 +135,35 @@ function max_network_difference(network1, network2, input_set, params; solver=Ai
     achievable_value = cell -> (cell.center, norm(NeuralVerification.compute_output(network1, cell.center) - NeuralVerification.compute_output(network2, cell.center), p))
 
     return general_priority_optimization(input_set, overestimate_cell, achievable_value, params, true)
+end
+
+"""
+    optimize_linear_with_buffer(network, input_set, coeffs, buffer, params; maximize=true, solver=Ai2z())
+
+solve the optimization problem: 
+min. c^T y 
+s.t. y = network_two(network_one(x) + z))
+     x in input_set 
+     z in buffer 
+
+This adds in the "buffer" to the output manifold of network_one, 
+and then optimizes a linear function over the resulting output manifold 
+of network_two. It uses a mip solver for the second network 
+in case the output of the first network is high dimensional. 
+"""
+function optimize_linear_with_buffer(network_one, network_two, input_set, coeffs, buffer, params; maximize=true, solver=Ai2z())
+    overestimate_cell = cell -> begin                                               
+                                    reach_one = forward_network(solver, network_one, cell)
+                                    buffered_reach = concretize(reach_one ⊕ buffer)
+                                    opt_val = mip_linear_opt_value_only(network_two, buffered_reach, coeffs, maximize)
+                                    return opt_val
+                                end
+    achievable_value = cell ->  begin
+                                    out_1 = compute_output(network_one, cell.center)
+                                    buffered_output = translate(buffer, out_1)
+                                    opt_val = mip_linear_value_only(network_two, buffered_output, coeffs, maximize)
+                                    return cell.center, opt_val
+                                end
+
+    return general_priority_optimization(input_set, overestimate_cell, achievable_value, params, maximize)
 end

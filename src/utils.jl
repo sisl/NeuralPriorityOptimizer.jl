@@ -32,6 +32,18 @@ function split_cell(cell::Hyperrectangle)
 end
 
 """
+    split_cell(cell::Zonotope)
+Split a zonotope along the generator with largest L-2 norm.
+"""
+function split_cell(cell::Zonotope)
+    # Pick the generator with largest norm to split along
+    generator_norms = norm.(eachcol(cell.generators))
+    ind = argmax(generator_norms)
+    z1, z2 = split(cell, ind)
+    return [z1, z2]
+end
+
+"""
     split_multiple_times(cell, n)
 
 Helper function to split a cell multiple times. It applies split_cell n times 

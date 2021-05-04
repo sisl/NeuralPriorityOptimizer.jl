@@ -7,7 +7,7 @@ import JuMP.MOI.OPTIMAL, JuMP.MOI.INFEASIBLE, JuMP.MOI.INFEASIBLE_OR_UNBOUNDED
 include("utils.jl")
 include("optimization_core.jl")
 include("optimization_wrappers.jl")
-include("approximate_methods.jl")
+include("additional_optimizers.jl")
 export general_priority_optimization,
        PriorityOptimizerParameters,
        project_onto_range,
@@ -21,5 +21,6 @@ export general_priority_optimization,
        pgd,
        repeated_pgd,
        hookes_jeeves,
-       get_acas_sets
+       get_acas_sets,
+       mip_linear_value_only
 end # module
