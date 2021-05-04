@@ -52,12 +52,12 @@ function hookes_jeeves(network, x, lbs, ubs, coeffs, α, ϵ, γ=0.5)
     return x
 end
 
-function mip_linear_value_only(network, input_set::Union{Hyperrectangle, Zonotope}, coeffs, maximize)
+function mip_linear_value_only(network, input_set::Union{Hyperrectangle, Zonotope}, coeffs, maximize; timeout=1500.0)
     # Get your bounds
     bounds = NeuralVerification.get_bounds(Ai2z(), network, input_set; before_act=true)
 
     # Create your model
-    model = Model(with_optimizer(Gurobi.Optimizer, OutputFlag=1, Threads=8, TimeLimit=300.0))
+    model = Model(with_optimizer(Gurobi.Optimizer, OutputFlag=1, Threads=8, TimeLimit=timeout))
     z = init_vars(model, network, :z, with_input=true)
     δ = init_vars(model, network, :δ, binary=true)
     # get the pre-activation bounds:
