@@ -73,11 +73,11 @@ function get_sat(property_index, lower_bound, upper_bound, stop_gap)
     # so if we find something <= stop_gap we return SAT.
     if property_index in [2, 3, 4]
         if upper_bound <= stop_gap
-            return "SAT"
+            return "sat"
         elseif lower_bound > 0 
-            return "UNSAT"
+            return "unsat"
         else 
-            return "Inconclusive"
+            return "inconclusive"
         end
     end
 end
@@ -104,9 +104,9 @@ end
 ###
 filename=string(@__DIR__, "/../results/CAS/acas_binaryreach_test.csv")
 max_steps = 20000
-properties_to_test = 4
-max_index_1 = 5
-max_index_2 = 9
+properties_to_test = 1
+max_index_1 = 1
+max_index_2 = 1
 p = 1
 params = PriorityOptimizerParameters(max_steps=max_steps, stop_frequency=200, verbosity=1)
 

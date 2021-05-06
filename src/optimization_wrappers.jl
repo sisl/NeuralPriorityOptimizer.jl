@@ -155,13 +155,13 @@ function optimize_linear_with_buffer(network_one, network_two, input_set, coeffs
     overestimate_cell = cell -> begin                                               
                                     reach_one = forward_network(solver, network_one, cell)
                                     buffered_reach = concretize(reach_one ⊕ buffer)
-                                    opt_val = mip_linear_opt_value_only(network_two, buffered_reach, coeffs, maximize)
+                                    opt_val = mip_linear_value_only(network_two, buffered_reach, coeffs; maximize=maximize)
                                     return opt_val
                                 end
     achievable_value = cell ->  begin
                                     out_1 = compute_output(network_one, cell.center)
                                     buffered_output = translate(buffer, out_1)
-                                    opt_val = mip_linear_value_only(network_two, buffered_output, coeffs, maximize)
+                                    opt_val = mip_linear_value_only(network_two, buffered_output, coeffs; maximize=maximize)
                                     return cell.center, opt_val
                                 end
 

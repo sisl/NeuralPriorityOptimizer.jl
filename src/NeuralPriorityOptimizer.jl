@@ -22,5 +22,6 @@ export general_priority_optimization,
        repeated_pgd,
        hookes_jeeves,
        get_acas_sets,
-       mip_linear_value_only
+       mip_linear_value_only,
+       mip_linear_uniform_split
 end # module
