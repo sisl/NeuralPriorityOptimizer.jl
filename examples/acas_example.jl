@@ -78,11 +78,11 @@ function get_sat(property_index, lower_bound, upper_bound, stop_gap)
     # so if we find something <= stop_gap we return SAT.
     if property_index in [2, 3, 4]
         if upper_bound <= stop_gap
-            return "SAT"
+            return "sat"
         elseif lower_bound > 0 
-            return "UNSAT"
+            return "unsat"
         else 
-            return "Inconclusive"
+            return "inconclusive"
         end
     end
 end
@@ -112,7 +112,6 @@ filename=string(@__DIR__, "/../results/CAS/acas_fullrun_onethread_binary.csv")
 properties_to_test = 4
 max_index_1 = 5
 max_index_2 = 9
-p = 1
 
 full_time = @elapsed begin
     lower_bounds = Array{Float64, 3}(undef, 4, 5, 9)

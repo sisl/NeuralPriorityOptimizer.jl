@@ -31,6 +31,13 @@ function split_cell(cell::Hyperrectangle)
     return [cell_one, cell_two]
 end
 
+# """
+
+# """
+# function split_cell_influence(cell::Hyperrectangle, network, objective)
+#     gradient = get_gradient()
+# end
+
 """
     split_cell(cell::Zonotope)
 Split a zonotope along the generator with largest L-2 norm.

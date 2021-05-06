@@ -14,7 +14,7 @@ network = read_nnet(network_file)
 
 # Define the coefficients for a linear objective
 coeffs = [1.0; -1.0; 1.0; -1.0; 1.0]
-radii = [0.001, 0.002]#, 0.004, 0.008, 0.016, 0.032, 0.064, 0.08, 0.10, 0.12, 0.13, 0.135, 0.14, 0.145, 0.15, 0.152, 0.155] #0.032, 0.064] #0.128, 0.14, 0.15]
+radii = [0.001, 0.002, 0.004, 0.008, 0.016, 0.032, 0.064, 0.08, 0.10, 0.12, 0.13, 0.135, 0.14, 0.145, 0.15, 0.152, 0.155] #0.032, 0.064] #0.128, 0.14, 0.15]
 
 # Use default parameters for the optimization then solve for each radius
 params = PriorityOptimizerParameters()

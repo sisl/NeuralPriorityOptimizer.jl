@@ -52,12 +52,16 @@ function hookes_jeeves(network, x, lbs, ubs, coeffs, α, ϵ, γ=0.5)
     return x
 end
 
-function mip_linear_value_only(network, input_set::Union{Hyperrectangle, Zonotope}, coeffs, maximize; timeout=1500.0)
+"""
+
+objective_threshold gives a value above which 
+"""
+function mip_linear_value_only(network, input_set::Union{Hyperrectangle, Zonotope}, coeffs; maximize=true, obj_threshold=(maximize ? -Inf : Inf), timeout=1500.0, outputflag=0, threads=1)
     # Get your bounds
     bounds = NeuralVerification.get_bounds(Ai2z(), network, input_set; before_act=true)
 
     # Create your model
-    model = Model(with_optimizer(Gurobi.Optimizer, OutputFlag=1, Threads=8, TimeLimit=timeout))
+    model = Model(with_optimizer(Gurobi.Optimizer, OutputFlag=outputflag, Threads=threads, TimeLimit=timeout))
     z = init_vars(model, network, :z, with_input=true)
     δ = init_vars(model, network, :δ, binary=true)
     # get the pre-activation bounds:
@@ -69,10 +73,17 @@ function mip_linear_value_only(network, input_set::Union{Hyperrectangle, Zonotop
 
     # Encode the network as an MIP
     encode_network!(model, network, BoundedMixedIntegerLP())
+    obj = coeffs'*last(z)
     if maximize 
-        @objective(model, Max, coeffs'*last(z))
+        @objective(model, Max, obj)
+        if obj_threshold != -Inf
+            @constraint(model, obj >= obj_threshold)
+        end
     else
-        @objective(model, Min, coeffs'*last(z))
+        @objective(model, Min, obj)
+        if obj_threshold != Inf 
+            @constraint(model, obj >= obj_threshold)
+        end
     end
 
     # Set lower and upper bounds 
@@ -98,7 +109,53 @@ function mip_linear_value_only(network, input_set::Union{Hyperrectangle, Zonotop
     optimize!(model)
     if termination_status(model) == OPTIMAL
         return objective_value(model)
-    else 
+    elseif termination_status(model) == INFEASIBLE
+        @warn "Infeasible result, did you have an output threshold? If not, then it should never return infeasible"
+        return maximize ? -Inf : Inf  
+    else
         @assert false "Non optimal result"
     end
+end
+
+"""
+    cell_to_subcell(cell, index, cells_per_dim)
+Get a sub-cell from a hyperrectangular cell given an index. So if we were in two dimensions 
+with a cell with low = [-1, -1] and high = [1, 1], and cells_per_dim = [2, 2]
+and index = [1, 1] we would get low=[-1.0, -1.0], high=[0.0, 0.0], the bottom left quadrant.
+"""
+function cell_to_subcell(cell, index, cells_per_dim)
+    lbs, ubs = low(cell), high(cell)
+    subcell_lbs = (ubs .- lbs) .* ((index .- 1) ./ cells_per_dim) .+ lbs
+    subcell_ubs = (ubs .- lbs) .* (index ./ cells_per_dim) .+ lbs
+    return Hyperrectangle(low=subcell_lbs, high=subcell_ubs)
+end
+
+function cell_to_all_subcells(cell, cells_per_dim)
+    cells = Array{Hyperrectangle}(undef, cells_per_dim...)
+    for index in CartesianIndices(Tuple(cells_per_dim))
+        index_as_vector = [index[i] for i =1:length(index)]
+        cells[index] = cell_to_subcell(cell, index_as_vector, cells_per_dim) 
+    end
+    return cells
+end
+
+"""
+    mip_linear_split(network, input_set, coeffs, maximize, cells_per_dim)
+
+Solve a linear optimization problem by splitting the space into cells and 
+solving a MIP on each cell 
+splits gives the number of splits in each dimension
+"""
+function mip_linear_split(network, input_set, coeffs, cells_per_dim; maximize=true, threads=8)
+    indices = CartesianIndices(Tuple(cells_per_dim))
+    optima = (maximize == true ? -Inf : Inf) * ones(cells_per_dim...)
+    for index in indices 
+        best_so_far = maximize ? maximum(optima) : minimum(optima)
+        println("Starting query for index: ", index)
+        println("best so far: ", best_so_far)
+        index_as_vector = [index[i] for i =1:length(index)]
+        subcell = cell_to_subcell(input_set, index_as_vector, cells_per_dim)
+        optima[index] = mip_linear_value_only(network, subcell, coeffs; maximize=maximize, obj_threshold=best_so_far, threads=threads)   
+    end
+    return maximize ? maximum(optima) : minimum(optima)
 end
