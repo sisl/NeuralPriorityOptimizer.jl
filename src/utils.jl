@@ -332,7 +332,7 @@ Checks whether the zonotope is disjoint from the polytope described by A and b
 function check_disjoint(zonotope::Zonotope, A, b; solver=Gurobi.Optimizer)
     G, c = zonotope.generators, zonotope.center
     n, m = size(G)
-    model = Model(with_optimizer(solver, OutputFlag=0))
+    model = Model(with_optimizer(solver, OutputFlag=0, Threads=1))
     
     # Introduce x in the basis of the zonotope, z in the zonotope,
     # then enforce it is in the polytope too

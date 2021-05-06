@@ -15,8 +15,8 @@ network_1 = read_nnet(network_file_1)
 network_2 = read_nnet(network_file_2)
 
 # Define your input region
-lbs = [-1.0, -1.0, -0.93141591135858504, -0.928987424967730113]
-ubs = [1.0, 1.0, -0.9, -0.9]
+lbs = [-0.25, -0.25, -0.93141591135858504, -0.928987424967730113]
+ubs = [0.25, 0.25, -0.9, -0.9]
 input_set = Hyperrectangle(low=lbs, high=ubs)
 
 # Solve the problem using 20,000 steps maximum

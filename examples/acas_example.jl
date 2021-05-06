@@ -7,6 +7,11 @@
 using NeuralPriorityOptimizer
 using NeuralVerification
 using LazySets
+using LinearAlgebra
+
+@assert Threads.nthreads()==1 "for benchmarking threads must be 1"
+LinearAlgebra.BLAS.set_num_threads(1)
+
 
 """
     test_acas_network(index1, index2, property_index, params; p=1)
@@ -102,13 +107,12 @@ end
 ###
 # Setup your parameters and then run the tests
 ###
-filename=string(@__DIR__, "/../results/CAS/acas_binaryreach_test.csv")
-max_steps = 20000
+filename=string(@__DIR__, "/../results/CAS/acas_fullrun_onethread_binary.csv")
+#max_steps = 200000 hard coded below now to be different for the properties
 properties_to_test = 4
 max_index_1 = 5
 max_index_2 = 9
 p = 1
-params = PriorityOptimizerParameters(max_steps=max_steps, stop_frequency=200, verbosity=1)
 
 full_time = @elapsed begin
     lower_bounds = Array{Float64, 3}(undef, 4, 5, 9)
@@ -116,6 +120,10 @@ full_time = @elapsed begin
     times = Array{Float64, 3}(undef, 4, 5, 9)
     steps = Array{Integer, 3}(undef, 4, 5, 9)
     for property_index = 1:properties_to_test
+	params = PriorityOptimizerParameters(max_steps=200000, stop_frequency=100, verbosity=0)
+	if property_index > 1
+		params = PriorityOptimizerParameters(max_steps=50000, stop_frequency=100, verbosity=0) 
+	end
         for i = 1:max_index_1
             for j = 1:max_index_2
                 println("Property ", property_index, " Network ", i, "-", j)
