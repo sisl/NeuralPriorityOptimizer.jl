@@ -29,7 +29,7 @@ If we ever get an upper bound on our objective that's lower than the upper_bound
 
 This function returns the best input found, a lower bound on the optimal value, an upper bound on the optimal value, and the number of steps taken.
 """
-function general_priority_optimization(start_cell::Hyperrectangle, overestimate_cell, achievable_value, params::PriorityOptimizerParameters, lower_bound_threshold, upper_bound_threshold)
+function general_priority_optimization(start_cell::Hyperrectangle, overestimate_cell, achievable_value, params::PriorityOptimizerParameters, lower_bound_threshold, upper_bound_threshold, split)
     initial_cells = split_multiple_times(start_cell, params.initial_splits)
     # Create your queue, then add your original new_cells 
     cells = PriorityQueue(Base.Order.Reverse) # pop off largest first 
@@ -39,7 +39,7 @@ function general_priority_optimization(start_cell::Hyperrectangle, overestimate_
     # For n_steps dequeue a cell, split it, and then 
     for i = 1:params.max_steps
         cell, value = peek(cells) # peek instead of dequeue to get value, is there a better way?
-        @assert value >= best_lower_bound "Our lowest upper bound must be greater than the highest achieved value"
+        @assert value + TOL[] >= best_lower_bound string("Our highest upper bound must be greater than the highest achieved value. Upper bound: ", value, " achieved value: ", best_lower_bound)
         dequeue!(cells)
 
         # We've passed some threshold on our upper bound that is satisfactory, so we return 
@@ -73,7 +73,7 @@ function general_priority_optimization(start_cell::Hyperrectangle, overestimate_
             end
         end
 
-        new_cells = split_cell(cell)
+        new_cells = split(cell)
         # Enqueue each of the new cells
         for new_cell in new_cells
             # If you've made the max objective cell tiny
@@ -126,16 +126,16 @@ corresponds to having a threshold on the lower bound of the minimization problem
 
 This function returns the best input found, a lower bound on the optimal value, an upper bound on the optimal value, and the number of steps taken.
 """
-function general_priority_optimization(start_cell::Hyperrectangle, relaxed_optimize_cell, evaluate_objective, params::PriorityOptimizerParameters, maximize; bound_threshold_realizable=(maximize ? Inf : -Inf), bound_threshold_approximate=(maximize ? -Inf : Inf))
+function general_priority_optimization(start_cell::Hyperrectangle, relaxed_optimize_cell, evaluate_objective, params::PriorityOptimizerParameters, maximize; bound_threshold_realizable=(maximize ? Inf : -Inf), bound_threshold_approximate=(maximize ? -Inf : Inf), split=split_largest_interval)
     if maximize
-        return general_priority_optimization(start_cell, relaxed_optimize_cell, evaluate_objective, params, bound_threshold_realizable, bound_threshold_approximate)
+        return general_priority_optimization(start_cell, relaxed_optimize_cell, evaluate_objective, params, bound_threshold_realizable, bound_threshold_approximate, split)
     else 
         overestimate_cell = cell -> -relaxed_optimize_cell(cell)
         neg_evaluate_objective = cell -> begin
             input, result = evaluate_objective(cell)
             return input, -result
         end
-        x, lower, upper, steps = general_priority_optimization(start_cell, overestimate_cell, neg_evaluate_objective, params, -bound_threshold_realizable, -bound_threshold_approximate)
+        x, lower, upper, steps = general_priority_optimization(start_cell, overestimate_cell, neg_evaluate_objective, params, -bound_threshold_realizable, -bound_threshold_approximate, split)
         return x, -upper, -lower, steps
     end
 end

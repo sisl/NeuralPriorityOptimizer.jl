@@ -1,5 +1,3 @@
-gurobi_env = Gurobi.Env()
-
 """
     elem_basis(i, n)
     
@@ -16,33 +14,33 @@ Helper function to compute a linear objective given a network, input, and coeffi
 compute_linear_objective(network, x, coeffs) = dot(coeffs, NeuralVerification.compute_output(network, x))
 
 """
-    split_cell(cell::Hyperrectangle)
+    split_largest_interval(cell::Hyperrectangle)
 Split a hyperrectangle into multiple hyperrectangles. We currently pick the largest dimension 
 and split along that. 
 """
+function split_largest_interval(cell::Hyperrectangle)
+    largest_dimension = argmax(high(cell) .- low(cell))
+    return split_hyperrectangle(cell, largest_dimension)
+end
 
-function split_cell(cell::Hyperrectangle)
-    lbs, ubs = low(cell), high(cell)
-    largest_dimension = argmax(ubs .- lbs)
+"""
+    split_hyperrectangle(rect::Hyperrectangle, index)
+Generic function for splitting a hyperrectangle in half along a given dimension
+"""
+function split_hyperrectangle(rectangle::Hyperrectangle, index)
+    lbs, ubs = low(rectangle), high(rectangle)
     # have a vector [0, 0, ..., 1/2 largest gap at largest dimension, 0, 0, ..., 0]
-    delta = elem_basis(largest_dimension, length(lbs)) * 0.5 * (ubs[largest_dimension] - lbs[largest_dimension])
+    delta = elem_basis(index, length(lbs)) * 0.5 * (ubs[index] - lbs[index])
     cell_one = Hyperrectangle(low=lbs, high=(ubs .- delta))
     cell_two = Hyperrectangle(low=(lbs .+ delta), high=ubs)
     return [cell_one, cell_two]
 end
 
-# """
-
-# """
-# function split_cell_influence(cell::Hyperrectangle, network, objective)
-#     gradient = get_gradient()
-# end
-
 """
     split_cell(cell::Zonotope)
 Split a zonotope along the generator with largest L-2 norm.
 """
-function split_cell(cell::Zonotope)
+function split_largest_interval(cell::Zonotope)
     # Pick the generator with largest norm to split along
     generator_norms = norm.(eachcol(cell.generators))
     ind = argmax(generator_norms)
@@ -115,7 +113,7 @@ This is formulated as an LP
 function dist_zonotope_polytope_linf(zonotope::Zonotope, A, b; solver=Gurobi.Optimizer)
     G, c = zonotope.generators, zonotope.center
     n, m = size(G)
-    model = Model(with_optimizer(solver, gurobi_env, OutputFlag=0))
+    model = Model(with_optimizer(solver, GUROBI_ENV[], OutputFlag=0))
     
     # Introduce x in the basis of the zonotope, y in the polytope 
     x = @variable(model, [1:m])
@@ -146,7 +144,7 @@ This is formulated as an LP
 function dist_zonotope_polytope_l1(zonotope::Zonotope, A, b; solver=Gurobi.Optimizer)
     G, c = zonotope.generators, zonotope.center
     n, m = size(G)
-    model = Model(with_optimizer(solver, gurobi_env, OutputFlag=0))
+    model = Model(with_optimizer(solver, GUROBI_ENV[], OutputFlag=0))
     
     # Introduce x in the basis of the zonotope, y in the polytope 
     x = @variable(model, [1:m])
@@ -250,7 +248,7 @@ end
     inf_x ||x - point||_inf s.t. x in polytope
 """
 function dist_polytope_point_linf(A, b, point; solver=Gurobi.Optimizer)
-    model = Model(with_optimizer(solver, gurobi_env, OutputFlag=0))
+    model = Model(with_optimizer(solver, GUROBI_ENV[], OutputFlag=0))
     x = @variable(model, [1:size(A, 2)])
     @constraint(model, A * x .<= b)
 
@@ -271,7 +269,7 @@ A helper function which finds the distance for the l-1 norm between a
 inf_x ||x - point||_1 s.t. x in polytope
 """
 function dist_polytope_point_l1(A, b, point; solver=Gurobi.Optimizer)
-    model = Model(with_optimizer(solver, gurobi_env, OutputFlag=0))
+    model = Model(with_optimizer(solver, GUROBI_ENV[], OutputFlag=0))
     x = @variable(model, [1:size(A, 2)])
     @constraint(model, A * x .<= b)
 
@@ -339,7 +337,7 @@ Checks whether the zonotope is disjoint from the polytope described by A and b
 function check_disjoint(zonotope::Zonotope, A, b; solver=Gurobi.Optimizer)
     G, c = zonotope.generators, zonotope.center
     n, m = size(G)
-    model = Model(with_optimizer(solver, OutputFlag=0, Threads=1))
+    model = Model(with_optimizer(solver, GUROBI_ENV[], OutputFlag=0, Threads=1))
     
     # Introduce x in the basis of the zonotope, z in the zonotope,
     # then enforce it is in the polytope too
@@ -400,4 +398,24 @@ function get_acas_sets(property_number)
     end 
 
     return input_set, output_set
+end
+
+# zeroed_weights(act::ReLU, weights, activation) = 
+# zeroed_weights(act::Id, weights, activation) = weights
+
+# iterate backwards through it so we never have to store a matrix, it's always in a vector form? 
+function get_chained_gradient(network, x, output_grad)
+    gradient = output_grad'
+    activations = get_activation(network, vec(x))
+    for (i, layer) in Iterators.reverse(enumerate(network.layers))
+        # Corner case where all activations are 0, the gradient will now be 0
+        # and we can return directly 
+        if sum(activations[i]) == 0
+            return zeros(size(output_grad, 1), size(network.layers[1], 2))
+        else
+            gradient[:, .!activations[i]] .= 0.0
+            gradient = gradient * layer.weights
+        end
+    end
+    return gradient
 end

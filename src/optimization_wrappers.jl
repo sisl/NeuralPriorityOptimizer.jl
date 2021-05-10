@@ -25,6 +25,22 @@ function optimize_linear(network, input_set, coeffs, params; maximize=true, solv
     return general_priority_optimization(input_set, approximate_optimize_cell, achievable_value, params, maximize)
 end
 
+function optimize_linear_gradient_split(network, input_set::Hyperrectangle, coeffs, params; maximize=true, solver=Ai2z())
+    approximate_optimize_cell = cell -> ρ(coeffs, forward_network(solver, network, cell))
+    #achievable_value = cell -> (cell.center, compute_linear_objective(network, cell.center, coeffs))
+    achievable_value = cell -> begin 
+                                    grad = get_chained_gradient(network, cell.center, coeffs)
+                                    x = σ(vec(grad), cell)
+                                    return x, compute_linear_objective(network, x, coeffs)
+                               end
+    # split_cell = cell -> begin 
+    #                         grad = get_chained_gradient(network, cell.center, coeffs)
+    #                         priorities = abs.(vec(grad)) .* radius_hyperrectangle(cell)
+    #                         return split_hyperrectangle(cell, argmax(priorities))
+    #                      end
+    return general_priority_optimization(input_set, approximate_optimize_cell, achievable_value, params, maximize)
+end
+
 """
     optimize_convex_program(network, input_set, convex_fcn, evaluate_convex_fcn, params; maximize=true, solver=Ai2z())
 
