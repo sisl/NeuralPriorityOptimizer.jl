@@ -1,3 +1,4 @@
+
 """
     project_onto_range(network, input_set, y₀, p, params)
 
@@ -121,6 +122,21 @@ function reaches_obtuse_polytope(network, input_set, polytope, params; solver=Ai
 				 end
     achievable_value = cell -> (cell.center, convert(Int, !(compute_output(network, cell.center) in polytope)))
     return general_priority_optimization(input_set, underestimate_cell, achievable_value, params, false; bound_threshold_approximate = 0.5, bound_threshold_realizable=0.5)
+end
+
+# Minimize the indicator function which is 1 when a matrix is PSD and 0 otherwise.
+function range_is_psd(network, input_set, params; solver=Ai2z())
+	underestimate_cell = cell -> begin 
+					reach = overapproximate(forward_network(solver, network, cell), Hyperrectangle)
+					for vertex in vertices_list(reach)
+						if !isposdef!(reshape_vec_to_matrix(vertex))
+							return 0.0
+						end
+					end
+					return 1.0
+					end
+	achievable_value = cell -> (cell.center, convert(Int, isposdef(reshape_vec_to_matrix(compute_output(network, cell.center))))
+	return general_priority_optimization(input_set, underestimate_cell, achievable_value, params, false; bound_threshold_approximate = 0.5, bound_threshold_realizable=0.5)
 end
 
 """

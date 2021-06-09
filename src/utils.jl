@@ -371,6 +371,27 @@ function quick_check_disjoint(zonotope, constraints)
     return any(isdisjoint(zonotope, constraint) for constraint in constraints)
 end
 
+"""
+    reshape_vec_to_matrix(vec)
+
+Reshape a vector representing the upper triangle of a symmetric matrix. Assume the vector 
+stores the upper triangle column by column. So the vecotr [1, 2, 3] would be reshaped into
+[1 2;
+ 2 3]
+"""
+function reshape_vec_to_matrix(vec)
+	n_vec = length(vec)
+	n = round(Int, -0.5 + sqrt(0.25 + 2 * n_vec)) # from solving n(n+1)/2 = n_vec for n
+	M = zeros(Float64, n, n)
+	num_added = 0
+	for i = 1:n
+		M[1:i, i] = vec[1+num_added:num_added+i]
+		M[i, 1:i] = M[1:i, i]
+		num_added = num_added + i 
+	end
+	return M
+end
+
 
 """
     get_acas_sets(property_number)
