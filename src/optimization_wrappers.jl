@@ -79,19 +79,24 @@ function reaches_polytope(network, input_set, polytope, params; solver=Ai2z(), p
     return general_priority_optimization(input_set, underestimate_cell, achievable_value, params, false; bound_threshold_approximate=0.0) # if we ever show that we must have a distance > 0, then we know we can't reach the polytope 
 end
 
-function reaches_polytope_binary(network, input_set, polytope, params; solver=Ai2z())
+function reaches_polytope_binary(network, input_set, polytope, params; solver=Ai2z(), eager=false)
     # first get a zonotope overapproximation of the polytope we'll use to filter out 
     # clear lack of intersections?
     # for now hyperrectangle overapprox? or how to quickly filter out ones that don't intersect? 
     
     # have it be 1 if no intersection, 0 if intersection, and try to minimize 
     # so an objective function that's 0 inside the polytope and 1 outside
+    # TODO: add comment for change to non-eager 
     halfspaces = polytope.constraints
     A, b = tosimplehrep(polytope)
     underestimate_cell = cell -> begin
                                     reach = forward_network(solver, network, cell)
                                     if !quick_check_disjoint(reach, halfspaces)
-                                        return convert(Int, check_disjoint(reach, A, b))
+                                        if eager
+                                            return 0.0
+                                        else 
+                                            return convert(Int, check_disjoint(reach, A, b))
+                                        end
                                     else 
                                         return 1.0
                                     end
@@ -99,6 +104,23 @@ function reaches_polytope_binary(network, input_set, polytope, params; solver=Ai
     achievable_value = cell -> (cell.center, convert(Int, !(compute_output(network, cell.center) ∈ polytope)))
     
     return general_priority_optimization(input_set, underestimate_cell, achievable_value, params, false; bound_threshold_approximate=0.5, bound_threshold_realizable=0.5) # if ever show distance lower bound is above 0.5 (will mean it's 1) then there's no intersection left, so return. If we ever get a concrete value below 0.5 it will mean it's 0, which means we actually reached it. 
+end
+
+function reaches_obtuse_polytope(network, input_set, polytope, params; solver=Ai2z())
+    underestimate_cell = cell -> begin
+				    # could do zonotope too I think but the # vertices grows as 2^num generators so that worries me
+				    reach = overapproximate(forward_network(solver, network, cell), Hyperrectangle)
+				    vertex_intersects = false
+				    # if zonotope use vertices_list(reach; apply_convex_hull=false)
+				    for vertex in vertices_list(reach)
+					if vertex in polytope
+					    vertex_intersects = true
+					end
+				    end
+				    return vertex_intersects ? 0.0 : 1.0
+				 end
+    achievable_value = cell -> (cell.center, convert(Int, !(compute_output(network, cell.center) in polytope)))
+    return general_priority_optimization(input_set, underestimate_cell, achievable_value, params, false; bound_threshold_approximate = 0.5, bound_threshold_realizable=0.5)
 end
 
 """
