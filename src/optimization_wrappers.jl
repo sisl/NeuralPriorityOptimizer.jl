@@ -21,7 +21,8 @@ Optimize a linear function on the output of a network. This returns the optimal 
     upper bound on the objective value, and the number of steps that the solver took.  
 """
 function optimize_linear(network, input_set, coeffs, params; maximize=true, solver=Ai2z())
-    approximate_optimize_cell = cell -> ρ(coeffs, forward_network(solver, network, cell))
+    min_sign_flip = maximize ? 1.0 : -1.0
+    approximate_optimize_cell = cell -> min_sign_flip * ρ(min_sign_flip .* coeffs, forward_network(solver, network, cell))
     achievable_value = cell -> (cell.center, compute_linear_objective(network, cell.center, coeffs))
     return general_priority_optimization(input_set, approximate_optimize_cell, achievable_value, params, maximize)
 end
