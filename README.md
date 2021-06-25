@@ -4,7 +4,8 @@ This library is meant to perform a variety of simple optimization tasks. The wra
 <!---A writeup (in progress) describing how the algorithm works can be found in this [overleaf](https://www.overleaf.com/read/qvkssjmbrgyr). Any feedback or clarifying questions would be greatly appreciated! You can post them as issues to this repository or reach me by email at castrong@stanford.edu.  --->
 
 ## Quick start
-To add this package you must have [the Julia programming language](https://julialang.org/) installed. Enter the Julia REPL, then type ] to enter the package manager. Then run the following line:
+To add this package you must have [the Julia programming language](https://julialang.org/) installed as well as the [Gurobi](https://github.com/jump-dev/Gurobi.jl) and [Mosek](https://github.com/MOSEK/Mosek.jl) packages configured, both of which have free academic licenses. We hope to update the package to run with open-source linear program and convex program solvers that don't require a license, like GLPK and COSMO. Enter the Julia REPL, then type ] to enter the package manager. Then run the following lines:
+`pkg> add https://github.com/sisl/NeuralVerification.jl`
 `pkg> add https://github.com/sisl/NeuralPriorityOptimizer.jl`
 
 Several examples of loading networks and running simple queries can be found in the `examples` folder. For example, `examples/linear_hello_world.jl` shows how to load a network then optimize a linear function over the range of the network within an input region. Feedforward ReLU networks are the only type of networks currently supported by this tool. A general optimization algorithm and several useful wrappers are implemented and described in the following sections of the README.
