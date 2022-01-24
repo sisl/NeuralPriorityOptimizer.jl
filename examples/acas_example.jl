@@ -19,7 +19,7 @@ LinearAlgebra.BLAS.set_num_threads(1)
 Test ACAS network index1-index2 on property property_index with solver parameters given by params. 
 p sets the norm to use for properties 2, 3, and 4 which project onto a polytope under that norm. 
 """
-function test_acas_network(index1, index2, property_index, params; p=1)
+function test_acas_network(index1, index2, property_index, params; eager=false)
     network_name = string("ACASXU_experimental_v2a_", index1, "_", index2, ".nnet")
     # Read in the network. Named CAS so as not to confuse with the official ACAS Xu tables.
     network_file = string(@__DIR__, "/../networks/CAS/", network_name)
@@ -33,7 +33,8 @@ function test_acas_network(index1, index2, property_index, params; p=1)
         println("Checking if contained within polytope")
         time = @elapsed x_star, lower_bound, upper_bound, steps = contained_within_polytope(network, input_set, output_set, params)
     elseif output_set isa PolytopeComplement
-        time = @elapsed x_star, lower_bound, upper_bound, steps = reaches_polytope_binary(network, input_set, output_set.P, params)
+        #time = @elapsed x_star, lower_bound, upper_bound, steps = reaches_polytope_binary(network, input_set, output_set.P, params; eager=eager)
+        time = @elapsed x_star, lower_bound, upper_bound, steps = reaches_obtuse_polytope(network, input_set, output_set.P, params)
     else
         @assert false "Haven't implemented reach polytope yet"
     end
@@ -65,9 +66,9 @@ function get_sat(property_index, lower_bound, upper_bound, stop_gap)
     # violation is > 0 then we can exit the polytope, meaning we can satisfy the original constraint.
     if property_index == 1
         if lower_bound > 0
-            return "SAT"
+            return "sat"
         elseif upper_bound <= stop_gap
-            return "UNSAT"
+            return "unsat"
         else
             return "Inconclusive"
         end
@@ -107,11 +108,14 @@ end
 ###
 # Setup your parameters and then run the tests
 ###
-filename=string(@__DIR__, "/../results/CAS/acas_fullrun_onethread_binary.csv")
+#filename=string(@__DIR__, "/../results/CAS/acas_fullrun_onethread_binary_final_stopfreq1.csv")
 #max_steps = 200000 hard coded below now to be different for the properties
+stop_gap = 1e-4
 properties_to_test = 4
 max_index_1 = 5
 max_index_2 = 9
+stopfreq = 1
+filename=string(@__DIR__, "/../results/CAS/5_28_acas_obtuse_polytope_fullrun_onethread_binary_final_stopfreq", stopfreq, ".csv")
 
 full_time = @elapsed begin
     lower_bounds = Array{Float64, 3}(undef, 4, 5, 9)
@@ -119,25 +123,23 @@ full_time = @elapsed begin
     times = Array{Float64, 3}(undef, 4, 5, 9)
     steps = Array{Integer, 3}(undef, 4, 5, 9)
     for property_index = 1:properties_to_test
-	params = PriorityOptimizerParameters(max_steps=200000, stop_frequency=100, verbosity=0)
+	params = PriorityOptimizerParameters(max_steps=1500000, stop_frequency=stopfreq, stop_gap=stop_gap, verbosity=0)
 	if property_index > 1
-		params = PriorityOptimizerParameters(max_steps=50000, stop_frequency=100, verbosity=0) 
+		params = PriorityOptimizerParameters(max_steps=1500000, stop_frequency=stopfreq, stop_gap=stop_gap, verbosity=0) 
 	end
         for i = 1:max_index_1
             for j = 1:max_index_2
                 println("Property ", property_index, " Network ", i, "-", j)
-                lower_bounds[property_index, i, j], upper_bounds[property_index, i, j], times[property_index, i, j], steps[property_index, i, j] = test_acas_network(i, j, property_index, params; p=p)
+                lower_bounds[property_index, i, j], upper_bounds[property_index, i, j], times[property_index, i, j], steps[property_index, i, j] = test_acas_network(i, j, property_index, params)
                 println()
             end
         end
     end
 end
 
-println("p norm: ", p)
-println("Max steps: ", max_steps)
 println("Full time: ", full_time)
 
-print_results(lower_bounds, upper_bounds, times, steps, properties_to_test, max_index_1, max_index_2, params.stop_gap)
-write_results(filename, lower_bounds, upper_bounds, times, steps, properties_to_test, max_index_1, max_index_2, params.stop_gap)
+print_results(lower_bounds, upper_bounds, times, steps, properties_to_test, max_index_1, max_index_2, stop_gap)
+write_results(filename, lower_bounds, upper_bounds, times, steps, properties_to_test, max_index_1, max_index_2, stop_gap)
 
 
