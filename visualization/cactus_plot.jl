@@ -5,7 +5,7 @@ using DataFrames
 function add_cactus!(plot, times, label, style)
     sorted = sort(times)
     accumulated = accumulate(+, sorted)
-    push!(plot, Plots.Linear(1:length(times), accumulated, legendentry=label, markSize=2.0, style=style))
+    push!(plot, Plots.Linear(accumulated, 1:length(times), legendentry=label, markSize=2.0, style=style))
 end
 
 function cactus_plot!(plot, times, labels, styles)
@@ -22,9 +22,9 @@ function clean_times!(times, time_cutoff)
 end
 
 function clean_and_cactus_plot(times, labels, styles, max_time, output_file; title="Cactus Plot")
-    plot = Axis(style="black, width=19cm, height=12cm", xlabel="Solved Instances", ylabel="Time (s)", title=title)
+    plot = Axis(style="black, width=19cm, height=12cm", xlabel="Time (s)", ylabel="Solved Instances", title=title)
     #plot.legendStyle = "anchor = north west"
-    plot.legendPos = "north west"
+    plot.legendPos = "south east"
     clean_times!(times, max_time)
     println("cleaned times: ", times)
     cactus_plot!(plot, times, labels, styles)
@@ -32,4 +32,5 @@ function clean_and_cactus_plot(times, labels, styles, max_time, output_file; tit
     # Now save the figure
     save(output_file*".pdf", plot)
     save(output_file*".tex", plot)
+    return plot
 end

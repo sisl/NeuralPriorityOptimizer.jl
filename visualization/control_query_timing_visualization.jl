@@ -21,13 +21,15 @@ function time_and_plot(splits_per_dim)
 
     # We'll verify an eighth of the state space
     lbs = [-0.8, -0.8, -1.0, -1.0]
-    ubs = [0.8, 0.8, -0.94, -0.94]
-    cells_per_dim = [1, 1, 2, 2]
+    ubs = [0.8, 0.8, -0.85, -0.85]
+    #lbs = [-0.001, -0.001, -1.0, -1.0]
+    #ubs = [0.001, 0.001, -0.999, -0.999]
+    cells_per_dim = [1, 1, 5, 5]
     full_input_region = Hyperrectangle(low=lbs, high=ubs)
     cells = cell_to_all_subcells(full_input_region, cells_per_dim)
 
     # Parameters for the solvers 
-    params = PriorityOptimizerParameters(stop_gap=1e-4, stop_frequency=100, max_steps=200000) # for the priority solver 
+    params = PriorityOptimizerParameters(stop_gap=1e-4, stop_frequency=1, max_steps=200000) # for the priority solver 
     # splits_per_dim = [10, 10, 1, 1] # defined as an argument passed into the function 
 
 
@@ -52,11 +54,11 @@ function time_and_plot(splits_per_dim)
     # Make a scatterplot comparing the two 
     times_priority = vec(times_priority)
     times_mip_split = vec(times_mip_split)
-    plot = Axis(style="black, width=19cm, height=12cm", xlabel="Time Priority Optimizer (s)", ylabel="Time DeepZ + MIP + Splitting (s)", title="Timing comparison on linear optimization problems", axisEqual=true)
-    push!(plot, Plots.Scatter(times_priority, times_mip_split))
+    #plot = Axis(style="black, width=19cm, height=12cm", xlabel="Time Priority Optimizer (s)", ylabel="Time DeepZ + MIP + Splitting (s)", title="Timing comparison on linear optimization problems", axisEqual=true)
+    #push!(plot, Plots.Scatter(times_priority, times_mip_split))
 
-    save(string("./visualization/plots/comparison_to_mip_split/linear_optimization_vs_uniform_split_", string(splits_per_dim), ".pdf"), plot)
-    save(string("./visualization/plots/comparison_to_mip_split/linear_optimization_vs_uniform_split_", string(splits_per_dim), ".pdf"), plot)
+    #save(string("./visualization/plots/comparison_to_mip_split/linear_optimization_vs_uniform_split_", string(splits_per_dim), ".pdf"), plot)
+    #save(string("./visualization/plots/comparison_to_mip_split/linear_optimization_vs_uniform_split_", string(splits_per_dim), ".pdf"), plot)
 
     return times_priority, times_mip_split 
 end
@@ -71,6 +73,25 @@ times = [times_mip_split_3_3, times_mip_split_5_5, times_mip_split_10_10, times_
 labels = ["MIP Split 3x3", "MIP Split 5x5", "MIP Split 10x10", "MIP Split 15x15", "Priority Optimizer (ours)"]
 styles = ["mark=o, orange", "mark=+, blue", "mark=triangle, red", "mark=square, black", "mark=diamond,teal"]
 max_time = 3000000.0
-output_file = string(@__DIR__, "/plots/comparison_to_mip_split/splitting_cactus")
-clean_and_cactus_plot(times, labels, styles, max_time, output_file; title="MIP Splitting vs. Priority Optimizer")
+output_file = string(@__DIR__, "/plots/comparison_to_mip_split/5_18_splitting_cactus")
+#clean_and_cactus_plot(times, labels, styles, max_time, output_file; title="MIP Splitting vs. Priority Optimizer")
 
+@show times_mip_split_3_3
+@show times_mip_split_5_5
+@show times_mip_split_10_10
+@show times_mip_split_15_15
+@show times_priority_1
+@show times_priority_2
+@show times_priority_3
+@show times_priority_4
+
+open("./results/temp.txt", "a") do io
+	println(io, "times_mip_split_3_3 = ", times_mip_split_3_3)
+	println(io, "times_mip_split_5_5 = ", times_mip_split_5_5)
+	println(io, "times_mip_split_10_10 = ", times_mip_split_10_10)
+	println(io, "times_mip_split_15_15 = ", times_mip_split_15_15)
+	println(io, "times_priority_1 = ", times_priority_1)
+	println(io, "times_priority_2 = ", times_priority_2)
+	println(io, "times_priority_3 = ", times_priority_3)
+	println(io, "times_priority_4 = ", times_priority_4)
+end
