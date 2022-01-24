@@ -21,7 +21,8 @@ Optimize a linear function on the output of a network. This returns the optimal 
     upper bound on the objective value, and the number of steps that the solver took.  
 """
 function optimize_linear(network, input_set, coeffs, params; maximize=true, solver=Ai2z())
-    approximate_optimize_cell = cell -> ρ(coeffs, forward_network(solver, network, cell))
+    min_sign_flip = maximize ? 1.0 : -1.0
+    approximate_optimize_cell = cell -> min_sign_flip * ρ(min_sign_flip .* coeffs, forward_network(solver, network, cell))
     achievable_value = cell -> (cell.center, compute_linear_objective(network, cell.center, coeffs))
     return general_priority_optimization(input_set, approximate_optimize_cell, achievable_value, params, maximize)
 end
@@ -114,9 +115,9 @@ function reaches_obtuse_polytope(network, input_set, polytope, params; solver=Ai
 				    vertex_intersects = false
 				    # if zonotope use vertices_list(reach; apply_convex_hull=false)
 				    for vertex in vertices_list(reach)
-					if vertex in polytope
-					    vertex_intersects = true
-					end
+                        if vertex in polytope
+                            vertex_intersects = true
+                        end
 				    end
 				    return vertex_intersects ? 0.0 : 1.0
 				 end
@@ -127,15 +128,15 @@ end
 # Minimize the indicator function which is 1 when a matrix is PSD and 0 otherwise.
 function range_is_psd(network, input_set, params; solver=Ai2z())
 	underestimate_cell = cell -> begin 
-					reach = overapproximate(forward_network(solver, network, cell), Hyperrectangle)
-					for vertex in vertices_list(reach)
-						if !isposdef!(reshape_vec_to_matrix(vertex))
-							return 0.0
-						end
-					end
-					return 1.0
-					end
-	achievable_value = cell -> (cell.center, convert(Int, isposdef(reshape_vec_to_matrix(compute_output(network, cell.center))))
+                                    reach = overapproximate(forward_network(solver, network, cell), Hyperrectangle)
+                                    for vertex in vertices_list(reach)
+                                        if !isposdef!(reshape_vec_to_matrix(vertex))
+                                            return 0.0
+                                        end
+                                    end
+                                    return 1.0
+					             end
+	achievable_value = cell -> (cell.center, convert(Int, isposdef(reshape_vec_to_matrix(compute_output(network, cell.center)))))
 	return general_priority_optimization(input_set, underestimate_cell, achievable_value, params, false; bound_threshold_approximate = 0.5, bound_threshold_realizable=0.5)
 end
 

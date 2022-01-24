@@ -4,8 +4,6 @@ using NeuralVerification: compute_output, get_activation, TOL
 using Convex, Mosek, MosekTools, JuMP, Gurobi
 import JuMP.MOI.OPTIMAL, JuMP.MOI.INFEASIBLE, JuMP.MOI.INFEASIBLE_OR_UNBOUNDED
 
-#const gurobi_env = Gurobi.Env()
-
 # From https://githubmemory.com/repo/jump-dev/Gurobi.jl/issues/388
 const GUROBI_ENV = Ref{Gurobi.Env}()
 function __init__()
